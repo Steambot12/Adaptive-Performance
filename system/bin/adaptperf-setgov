@@ -1,0 +1,8 @@
+#!/system/bin/sh
+GOVERNOR_PREF="/data/adb/modules/adaptive_performance/governor_pref.txt"
+[ -z "$1" ] && echo "Usage: adaptperf-setgov <governor>" && exit 1
+GOV="$1"
+echo "$GOV" > "$GOVERNOR_PREF"
+chmod 666 "$GOVERNOR_PREF" 2>/dev/null
+sync
+echo "✅ Gaming governor set to: $GOV"

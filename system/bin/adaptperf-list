@@ -1,0 +1,2 @@
+#!/system/bin/sh
+cat "/data/adb/modules/adaptive_performance/game_packages.txt" 2>/dev/null | nl

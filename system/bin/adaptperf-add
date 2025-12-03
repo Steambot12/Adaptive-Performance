@@ -1,0 +1,9 @@
+#!/system/bin/sh
+GAME_PACKAGES="/data/adb/modules/adaptive_performance/game_packages.txt"
+[ -z "$1" ] && echo "Usage: adaptperf-add <package>" && exit 1
+PKG="$1"
+grep -Fxq "$PKG" "$GAME_PACKAGES" 2>/dev/null && echo "Already exists" && exit 0
+echo "$PKG" >> "$GAME_PACKAGES"
+chmod 666 "$GAME_PACKAGES" 2>/dev/null
+sync
+echo "✅ Added: $PKG"

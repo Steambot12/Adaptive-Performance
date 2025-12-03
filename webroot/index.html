@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adaptive Performance v1.1</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #0d1117;
+            color: #c9d1d9;
+            padding: 20px;
+        }
+        .container { max-width: 900px; margin: 0 auto; }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .header h1 { color: white; font-size: 24px; margin-bottom: 5px; }
+        .header .version { color: rgba(255,255,255,0.8); font-size: 14px; }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            margin-left: 8px;
+            background: linear-gradient(135deg, #3fb950 0%, #2ea043 100%);
+            color: white;
+        }
+
+        .card {
+            background: #161b22;
+            border: 1px solid #30363d;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card h2 {
+            color: #58a6ff;
+            font-size: 18px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #30363d;
+            padding-bottom: 10px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+
+        .info-item {
+            background: #0d1117;
+            padding: 12px;
+            border-radius: 6px;
+            border: 1px solid #21262d;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: #8b949e;
+            margin-bottom: 5px;
+        }
+
+        .info-value {
+            font-size: 16px;
+            color: #c9d1d9;
+            font-weight: 600;
+            word-break: break-word;
+        }
+
+        .status {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .status-gaming {
+            background: #da3633;
+            color: white;
+            animation: pulse 2s infinite;
+        }
+
+        .status-idle {
+            background: #6e7681;
+            color: white;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+
+        .game-count {
+            display: inline-block;
+            background: #21262d;
+            padding: 5px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            color: #58a6ff;
+            font-weight: 600;
+            margin-left: 10px;
+        }
+
+        .game-list {
+            background: #0d1117;
+            border: 1px solid #30363d;
+            border-radius: 6px;
+            padding: 10px;
+            max-height: 350px;
+            overflow-y: auto;
+        }
+
+        .game-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            background: #161b22;
+            border-radius: 4px;
+            border-left: 3px solid #58a6ff;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #c9d1d9;
+            transition: all 0.2s;
+        }
+
+        .game-item:hover {
+            background: #1c2128;
+            border-left-color: #3fb950;
+        }
+
+        .game-item.active {
+            border-left-color: #3fb950;
+            background: #1a2e1a;
+        }
+
+        .game-item.removing {
+            opacity: 0.3;
+            background: #4d1a1a;
+            border-left-color: #f85149;
+            animation: fadeOut 0.3s ease-out;
+        }
+
+        @keyframes fadeOut {
+            from { opacity: 1; transform: translateX(0); }
+            to { opacity: 0.3; transform: translateX(-10px); }
+        }
+
+        .game-item-name { flex: 1; }
+
+        .btn {
+            background: #238636;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+            margin-bottom: 10px;
+            transition: background 0.2s;
+            font-weight: 600;
+        }
+
+        .btn:hover:not(:disabled) { background: #2ea043; }
+        .btn:active { transform: scale(0.98); }
+        .btn:disabled { background: #6e7681; cursor: not-allowed; opacity: 0.6; }
+
+        .btn-primary { background: #667eea; }
+        .btn-primary:hover:not(:disabled) { background: #764ba2; }
+
+        .btn-danger {
+            background: #da3633;
+            font-size: 12px;
+            padding: 6px 12px;
+        }
+        .btn-danger:hover:not(:disabled) { background: #b62324; }
+
+        .input-group { margin-bottom: 15px; }
+
+        .input-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #c9d1d9;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .input-group input[type="text"],
+        .input-group select {
+            width: 100%;
+            padding: 10px 15px;
+            background: #0d1117;
+            border: 2px solid #30363d;
+            border-radius: 6px;
+            color: #c9d1d9;
+            font-size: 14px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .input-group input[type="text"]:focus,
+        .input-group select:focus {
+            outline: none;
+            border-color: #58a6ff;
+        }
+
+        .input-group select {
+            cursor: pointer;
+        }
+
+        .alert {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 14px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .alert-success {
+            background: #1a4d2e;
+            border: 1px solid #2ea043;
+            color: #3fb950;
+        }
+
+        .alert-error {
+            background: #4d1a1a;
+            border: 1px solid #f85149;
+            color: #f85149;
+        }
+
+        .alert-info {
+            background: #1a2f4d;
+            border: 1px solid #58a6ff;
+            color: #58a6ff;
+        }
+
+        .log-container {
+            background: #0d1117;
+            border: 2px solid #30363d;
+            border-radius: 6px;
+            padding: 15px;
+            height: 350px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+
+        .log-line {
+            padding: 3px 0;
+            color: #8b949e;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .log-time {
+            color: #58a6ff;
+            margin-right: 8px;
+            font-weight: bold;
+        }
+
+        .log-line.gaming { color: #3fb950; font-weight: bold; }
+        .log-line.success { color: #3fb950; }
+        .log-line.command { color: #f0883e; font-weight: bold; }
+
+        .update-indicator {
+            width: 8px;
+            height: 8px;
+            background: #3fb950;
+            border-radius: 50%;
+            display: inline-block;
+            margin-left: 8px;
+            animation: blink 1s infinite;
+        }
+
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.2; }
+        }
+
+        .method-info {
+            background: #1a4d2e;
+            border: 1px solid #3fb950;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 15px;
+            font-size: 12px;
+            color: #3fb950;
+        }
+
+        .chipset-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: bold;
+            margin-left: 8px;
+        }
+
+        .chipset-mediatek {
+            background: #f0883e;
+            color: white;
+        }
+
+        .chipset-snapdragon {
+            background: #58a6ff;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>⚡ Adaptive Performance Monitor</h1>
+            <div class="version">v1.1-RELEASE • by Steambot12 </div>
+        </div>
+
+        <div class="card">
+            <h2>📊 Status <span class="update-indicator"></span></h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Mode</div>
+                    <div class="info-value">
+                        <span id="state" class="status status-idle">...</span>
+                    </div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">CPU Governor</div>
+                    <div class="info-value" id="governor">--</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Foreground App</div>
+                    <div class="info-value" id="foreground" style="font-size: 12px;">--</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Temperature CPU</div>
+                    <div class="info-value" id="temp">--</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>🖥️ Device Info</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <div class="info-label">Device</div>
+                    <div class="info-value" id="device">--</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Kernel</div>
+                    <div class="info-value" id="kernel" style="font-size: 12px;">--</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">CPU Cores</div>
+                    <div class="info-value" id="cores">--</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Chipset</div>
+                    <div class="info-value" id="chipset">--</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>⚙️ CPU Governor Gaming</h2>
+
+            <div id="governorAlertContainer"></div>
+
+            <div class="info-grid" style="margin-bottom: 15px;">
+                <div class="info-item">
+                    <div class="info-label">Idle Governor</div>
+                    <div class="info-value" id="idleGovernor">--</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Current Gaming Governor</div>
+                    <div class="info-value" id="currentGamingGov">--</div>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label>🎮 Select Gaming Governor:</label>
+                <select id="gamingGovernorSelect" onchange="setGamingGovernor()">
+                    <option value="">...</option>
+                </select>
+            </div>
+
+            <div class="method-info">
+                ℹ️ This governor will be used when GAMING mode is active.
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>🎮 Game Package Manager <span class="game-count" id="gameCount">0</span></h2>
+
+            <div id="alertContainer"></div>
+
+            <div class="input-group">
+                <label>➕ Add New Game Package:</label>
+                <input type="text" id="addPackageInput" placeholder="com.garena.game.df">
+            </div>
+
+            <button class="btn btn-primary" onclick="addGamePackage()" id="addBtn">➕ Add Game</button>
+            <button class="btn" onclick="detectCurrentApp()">🔍 Detect App</button>
+            <button class="btn" onclick="forceRefreshGames()">🔄 Refresh</button>
+
+            <h3 style="color: #58a6ff; font-size: 16px; margin: 20px 0 10px 0;">📝 Game List:</h3>
+            <div class="game-list" id="gameList">
+                <div style="text-align: center; color: #8b949e; padding: 20px;">...</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>📝 Live Log <span class="update-indicator"></span></h2>
+
+            <button class="btn" onclick="refreshLog()">🔄 Refresh</button>
+            <button class="btn" onclick="clearLogDisplay()">🗑️ Clear</button>
+
+            <div class="log-container" id="logContainer">
+                <div class="log-line">...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_PORT = 9877;
+        let processing = false;
+        let lastGameListJSON = '';
+        let currentForeground = '';
+        let currentConfig = null;
+        let removingPackages = new Set();
+
+        function showAlert(message, type = 'info', container = 'alertContainer') {
+            const alertContainer = document.getElementById(container);
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            alertContainer.appendChild(alertDiv);
+            setTimeout(() => alertDiv.remove(), 5000);
+        }
+
+        async function callAPI(action, params = {}) {
+            try {
+                let url = `http://127.0.0.1:${API_PORT}/?action=${action}`;
+                for (const [key, value] of Object.entries(params)) {
+                    url += `&${key}=${encodeURIComponent(value)}`;
+                }
+                url += `&t=${Date.now()}`;
+
+                const response = await fetch(url, { method: 'GET', cache: 'no-cache' });
+                if (!response.ok) return { status: 'error', message: 'HTTP ' + response.status };
+
+                const text = await response.text();
+                if (!text || text.trim() === '') return { status: 'error', message: 'Empty' };
+
+                try {
+                    return JSON.parse(text);
+                } catch (e) {
+                    return { status: 'partial', message: 'Parse error' };
+                }
+            } catch (error) {
+                return { status: 'error', message: error.message };
+            }
+        }
+
+        window.addGamePackage = async function() {
+            if (processing) {
+                showAlert('⏳ Please wait...', 'info');
+                return;
+            }
+
+            const input = document.getElementById('addPackageInput');
+            const pkg = input.value.trim();
+
+            if (!pkg) {
+                showAlert('❌ Package name tidak boleh kosong!', 'error');
+                return;
+            }
+
+            const regex = /^[a-z][a-z0-9_]*(\.[a-z0-9_]+)+$/;
+            if (!regex.test(pkg)) {
+                showAlert('❌ Format invalid! Contoh: com.garena.game.df', 'error');
+                return;
+            }
+
+            processing = true;
+            const addBtn = document.getElementById('addBtn');
+            addBtn.disabled = true;
+            addBtn.textContent = '⏳ Adding...';
+
+            try {
+                showAlert(`⏳ Menambahkan: ${pkg}`, 'info');
+
+                const result = await callAPI('add', { pkg });
+
+                if (result.status === 'success' || result.status === 'partial') {
+                    showAlert(`✅ ${pkg} berhasil ditambahkan!`, 'success');
+                    input.value = '';
+
+                    // Force refresh multiple times
+                    for (let i = 0; i < 5; i++) {
+                        await new Promise(r => setTimeout(r, 400));
+                        await loadGames(true);
+                    }
+                } else {
+                    showAlert(`❌ ${result.message}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`❌ Error: ${error.message}`, 'error');
+            } finally {
+                processing = false;
+                addBtn.disabled = false;
+                addBtn.textContent = '➕ Add Game';
+            }
+        };
+
+        window.removeGamePackage = async function(pkg) {
+            if (processing) {
+                showAlert('⏳ Please wait...', 'info');
+                return;
+            }
+
+            if (!confirm(`Hapus game: ${pkg}?`)) return;
+
+            processing = true;
+            removingPackages.add(pkg);
+
+            // Immediate UI feedback - mark as removing
+            const gameItems = document.querySelectorAll('.game-item');
+            gameItems.forEach(item => {
+                const nameSpan = item.querySelector('.game-item-name');
+                if (nameSpan && nameSpan.textContent.includes(pkg)) {
+                    item.classList.add('removing');
+                    const removeBtn = item.querySelector('.btn-danger');
+                    if (removeBtn) {
+                        removeBtn.disabled = true;
+                        removeBtn.textContent = '⏳ Removing...';
+                    }
+                }
+            });
+
+            try {
+                showAlert(`⏳ Menghapus: ${pkg}`, 'info');
+
+                const result = await callAPI('remove', { pkg });
+
+                if (result.status === 'success' || result.status === 'partial') {
+                    showAlert(`✅ ${pkg} berhasil dihapus!`, 'success');
+
+                    // Force immediate reload with timestamp check bypass
+                    lastGameListJSON = '';  // Reset to force update
+
+                    // Force refresh multiple times like add
+                    for (let i = 0; i < 7; i++) {
+                        await new Promise(r => setTimeout(r, 300));
+                        await loadGames(true);
+                    }
+                } else {
+                    showAlert(`❌ ${result.message}`, 'error');
+                }
+            } catch (error) {
+                showAlert(`❌ Error: ${error.message}`, 'error');
+            } finally {
+                removingPackages.delete(pkg);
+                processing = false;
+            }
+        };
+
+        window.setGamingGovernor = async function() {
+            const select = document.getElementById('gamingGovernorSelect');
+            const governor = select.value;
+
+            if (!governor) return;
+
+            try {
+                showAlert(`⏳ Setting: ${governor}`, 'info', 'governorAlertContainer');
+
+                const result = await callAPI('set_governor', { governor });
+
+                if (result.status === 'success') {
+                    showAlert(`✅ Set to: ${governor}`, 'success', 'governorAlertContainer');
+                    await loadConfig();
+                } else {
+                    showAlert(`❌ ${result.message}`, 'error', 'governorAlertContainer');
+                }
+            } catch (error) {
+                showAlert(`❌ Error`, 'error', 'governorAlertContainer');
+            }
+        };
+
+        window.detectCurrentApp = async function() {
+            try {
+                const data = await fetchJSON('/dynamic.json');
+                if (!data || data.foreground === 'unknown') {
+                    showAlert('❌ Tidak ada app yang terdeteksi', 'error');
+                    return;
+                }
+
+                const input = document.getElementById('addPackageInput');
+                input.value = data.foreground;
+                showAlert(`✅ Terdeteksi: ${data.foreground}`, 'success');
+            } catch (error) {
+                showAlert(`❌ Error deteksi`, 'error');
+            }
+        };
+
+        window.forceRefreshGames = async function() {
+            try {
+                showAlert('🔄 Refreshing...', 'info');
+
+                lastGameListJSON = '';  // Force update
+
+                for (let i = 0; i < 5; i++) {
+                    await loadGames(true);
+                    await new Promise(r => setTimeout(r, 400));
+                }
+
+                showAlert('✅ Refreshed', 'success');
+            } catch (error) {
+                showAlert('❌ Refresh error', 'error');
+            }
+        };
+
+        async function fetchJSON(endpoint) {
+            try {
+                const response = await fetch(endpoint + '?t=' + Date.now(), { cache: 'no-cache' });
+                if (!response.ok) return null;
+                return await response.json();
+            } catch (error) {
+                return null;
+            }
+        }
+
+        async function fetchText(url) {
+            try {
+                const response = await fetch(url + '?t=' + Date.now(), { cache: 'no-cache' });
+                if (!response.ok) return null;
+                return await response.text();
+            } catch (error) {
+                return null;
+            }
+        }
+
+        function formatTemp(milli) {
+            const n = parseInt(milli);
+            if (!n || n <= 0) return 'N/A';
+            return (n / 1000).toFixed(1) + '°C';
+        }
+
+        async function loadConfig() {
+            const data = await fetchJSON('/config.json');
+            if (!data) return;
+
+            currentConfig = data;
+
+            const chipsetEl = document.getElementById('chipset');
+            const chipset = data.chipset || 'unknown';
+            const badgeClass = chipset === 'mediatek' ? 'chipset-mediatek' : 'chipset-snapdragon';
+            chipsetEl.innerHTML = `${chipset.toUpperCase()} <span class="${badgeClass}">${chipset === 'mediatek' ? '📱' : '🔷'}</span>`;
+
+            document.getElementById('idleGovernor').textContent = data.default_idle || '--';
+            document.getElementById('currentGamingGov').textContent = data.gaming_governor || '--';
+
+            const select = document.getElementById('gamingGovernorSelect');
+            select.innerHTML = '';
+
+            const governors = data.available_governors || [];
+            governors.forEach(gov => {
+                const option = document.createElement('option');
+                option.value = gov;
+                option.textContent = gov;
+                if (gov === data.gaming_governor) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            });
+        }
+
+        async function loadStatic() {
+            const data = await fetchJSON('/static.json');
+            if (!data) return;
+
+            document.getElementById('device').textContent = data.device || 'Unknown';
+            document.getElementById('kernel').textContent = data.kernel || 'Unknown';
+            document.getElementById('cores').textContent = data.cores || 0;
+        }
+
+        async function loadDynamic() {
+            const data = await fetchJSON('/dynamic.json');
+            if (!data) return;
+
+            currentForeground = data.foreground;
+
+            const stateEl = document.getElementById('state');
+            if (data.state === 'gaming') {
+                stateEl.textContent = 'GAMING 🎮';
+                stateEl.className = 'status status-gaming';
+            } else {
+                stateEl.textContent = 'IDLE 💤';
+                stateEl.className = 'status status-idle';
+            }
+
+            document.getElementById('governor').textContent = data.governor || 'Unknown';
+            document.getElementById('foreground').textContent = data.foreground === 'unknown' ? 'None' : data.foreground;
+            document.getElementById('temp').textContent = formatTemp(data.temperature);
+        }
+
+        window.loadGames = async function(forceRefresh = false) {
+            const data = await fetchJSON('/games.json');
+            if (!data) return;
+
+            const currentJSON = JSON.stringify(data);
+            if (!forceRefresh && currentJSON === lastGameListJSON) return;
+
+            lastGameListJSON = currentJSON;
+
+            const gameList = document.getElementById('gameList');
+            const games = data.games || [];
+
+            document.getElementById('gameCount').textContent = `${games.length} games`;
+
+            if (games.length === 0) {
+                gameList.innerHTML = '<div style="text-align: center; color: #8b949e; padding: 20px;">Belum ada game</div>';
+                return;
+            }
+
+            gameList.innerHTML = '';
+            games.forEach((pkg, index) => {
+                const item = document.createElement('div');
+                item.className = 'game-item';
+                if (pkg === currentForeground) item.classList.add('active');
+                if (removingPackages.has(pkg)) item.classList.add('removing');
+
+                const nameSpan = document.createElement('span');
+                nameSpan.className = 'game-item-name';
+                nameSpan.textContent = `${index + 1}. ${pkg}`;
+                if (pkg === currentForeground) nameSpan.textContent += ' 🎮';
+
+                const removeBtn = document.createElement('button');
+                removeBtn.className = 'btn btn-danger';
+                removeBtn.textContent = removingPackages.has(pkg) ? '⏳ Removing...' : '🗑️ Remove';
+                removeBtn.disabled = removingPackages.has(pkg);
+                removeBtn.onclick = () => removeGamePackage(pkg);
+
+                item.appendChild(nameSpan);
+                item.appendChild(removeBtn);
+                gameList.appendChild(item);
+            });
+        };
+
+        async function loadLog() {
+            const logText = await fetchText('/log.txt');
+            if (!logText) return;
+
+            const container = document.getElementById('logContainer');
+            const lines = logText.trim().split('\n').slice(-80);
+
+            container.innerHTML = '';
+            lines.forEach(line => {
+                const div = document.createElement('div');
+                div.className = 'log-line';
+
+                if (line.includes('GAMING') || line.includes('🎮')) div.classList.add('gaming');
+                else if (line.includes('ADD') || line.includes('REMOVE') || line.includes('SET')) div.classList.add('command');
+                else if (line.includes('✅')) div.classList.add('success');
+
+                const match = line.match(/\[(\d{2}:\d{2}:\d{2})\](.+)/);
+                if (match) {
+                    div.innerHTML = `<span class="log-time">[${match[1]}]</span>${match[2]}`;
+                } else {
+                    div.textContent = line;
+                }
+
+                container.appendChild(div);
+            });
+
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function refreshLog() { loadLog(); }
+        function clearLogDisplay() {
+            document.getElementById('logContainer').innerHTML = '<div class="log-line" style="text-align: center;">Cleared</div>';
+        }
+
+        document.getElementById('addPackageInput').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') addGamePackage();
+        });
+
+        (async function() {
+            console.log('Adaptive Performance v3.7.9 FIX');
+            console.log('Remove game instant disappear!');
+
+            const loadPromises = [
+                loadConfig(),
+                loadStatic(),
+                loadDynamic(),
+                loadGames(),
+                loadLog()
+            ];
+
+            await Promise.all(loadPromises);
+
+            setInterval(loadConfig, 5000);
+            setInterval(loadStatic, 10000);
+            setInterval(loadDynamic, 1000);
+            setInterval(() => loadGames(false), 1000);
+            setInterval(loadLog, 2000);
+
+            console.log('✅ Ready - remove fix applied!');
+        })();
+    </script>
+</body>
+</html>

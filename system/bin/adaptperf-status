@@ -1,0 +1,11 @@
+#!/system/bin/sh
+echo "⚡ Adaptive Performance v3.7.9 FIX"
+ps | grep -q "service.sh" && echo "✅ Service: Running" || echo "❌ Service: NOT running"
+echo "🌐 Dashboard: http://127.0.0.1:9876"
+echo "📡 API: http://127.0.0.1:9877"
+echo ""
+MODDIR="/data/adb/modules/adaptive_performance"
+if [ -f "$MODDIR/governor_pref.txt" ]; then
+    GAMING_GOV=$(cat "$MODDIR/governor_pref.txt" 2>/dev/null)
+    echo "🎮 Gaming Governor: $GAMING_GOV"
+fi
