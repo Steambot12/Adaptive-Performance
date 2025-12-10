@@ -1,8 +1,30 @@
 #!/system/bin/sh
-GOVERNOR_PREF="/data/adb/modules/adaptive_performance/governor_pref.txt"
-[ -z "$1" ] && echo "Usage: adaptperf-setgov <governor>" && exit 1
+# Adaptive Performance - Set Gaming Governor
+
+API_PORT=9877
 GOV="$1"
-echo "$GOV" > "$GOVERNOR_PREF"
-chmod 666 "$GOVERNOR_PREF" 2>/dev/null
-sync
-echo "✅ Gaming governor set to: $GOV"
+
+[ -z "$GOV" ] && {
+    echo "❌ Usage: adaptperf-setgov <governor>"
+    echo ""
+    echo "Available governors:"
+    cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors 2>/dev/null
+    exit 1
+}
+
+echo "⚙️  Setting gaming governor: $GOV"
+
+RESPONSE=$(echo "" | nc 127.0.0.1 $API_PORT << EOF
+GET /?action=set_governor&governor=$GOV HTTP/1.1
+Host: 127.0.0.1
+Connection: close
+
+EOF
+)
+
+if echo "$RESPONSE" | grep -q '"status":"success"'; then
+    echo "✅ Gaming governor set successfully"
+else
+    echo "❌ Failed to set governor"
+    echo "$RESPONSE" | grep -o '{.*}'
+fi

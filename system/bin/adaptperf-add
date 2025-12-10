@@ -1,9 +1,55 @@
 #!/system/bin/sh
-GAME_PACKAGES="/data/adb/modules/adaptive_performance/game_packages.txt"
-[ -z "$1" ] && echo "Usage: adaptperf-add <package>" && exit 1
+# Adaptive Performance - Add Game Package (with duplicate check)
+
+API_PORT=9877
+MODULE_DIR="/data/adb/modules/adaptive_performance"
+GAMES_FILE="$MODULE_DIR/game_packages.txt"
+APP_GOV_FILE="$MODULE_DIR/app_governors.txt"
 PKG="$1"
-grep -Fxq "$PKG" "$GAME_PACKAGES" 2>/dev/null && echo "Already exists" && exit 0
-echo "$PKG" >> "$GAME_PACKAGES"
-chmod 666 "$GAME_PACKAGES" 2>/dev/null
-sync
-echo "✅ Added: $PKG"
+
+[ -z "$PKG" ] && {
+    echo "❌ Usage: adaptperf-add <package>"
+    echo "Example: adaptperf-add com.garena.game.df"
+    exit 1
+}
+
+echo "🔍 Checking for duplicates..."
+
+# VALIDATION #1: Check if already in game list
+if [ -f "$GAMES_FILE" ]; then
+    if grep -qx "$PKG" "$GAMES_FILE"; then
+        echo "❌ ERROR: Package already exists in game list!"
+        echo "Package: $PKG"
+        exit 1
+    fi
+fi
+
+# VALIDATION #2: Check if in per-app governor list
+if [ -f "$APP_GOV_FILE" ]; then
+    if grep -q "^$PKG:" "$APP_GOV_FILE"; then
+        echo "❌ ERROR: Package exists in per-app governor list!"
+        echo "Package: $PKG"
+        echo "Remove from per-app list first."
+        exit 1
+    fi
+fi
+
+echo "✅ Validation passed"
+echo "➕ Adding game package: $PKG"
+
+PKG_ENCODED=$(echo "$PKG" | sed 's/\./%2E/g')
+
+RESPONSE=$(echo "" | nc 127.0.0.1 $API_PORT << EOF
+GET /?action=add&pkg=$PKG_ENCODED HTTP/1.1
+Host: 127.0.0.1
+Connection: close
+
+EOF
+)
+
+if echo "$RESPONSE" | grep -q '"status":"success"'; then
+    echo "✅ Package added successfully"
+else
+    echo "❌ Failed to add package"
+    echo "$RESPONSE" | grep -o '{.*}'
+fi

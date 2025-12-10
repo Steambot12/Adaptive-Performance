@@ -1,0 +1,78 @@
+#!/system/bin/sh
+# Adaptive Performance - Set App Governor (with conflict check)
+
+API_PORT=9877
+MODULE_DIR="/data/adb/modules/adaptive_performance"
+GAMES_FILE="$MODULE_DIR/game_packages.txt"
+APP_GOV_FILE="$MODULE_DIR/app_governors.txt"
+PKG="$1"
+GOV="$2"
+
+[ -z "$PKG" ] || [ -z "$GOV" ] && {
+    echo "❌ Usage: adaptperf-setappgov <package> <governor>"
+    echo "Example: adaptperf-setappgov com.proxima.dfm ondemand"
+    echo ""
+    echo "Available governors:"
+    cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors 2>/dev/null
+    exit 1
+}
+
+echo "🔍 Checking for conflicts..."
+
+# VALIDATION #1: Check if in game list (CONFLICT!)
+if [ -f "$GAMES_FILE" ]; then
+    if grep -qx "$PKG" "$GAMES_FILE"; then
+        echo "❌ CONFLICT: Package exists in game list!"
+        echo "Package: $PKG"
+        echo ""
+        echo "This package is configured as a GAME and uses the Gaming Governor."
+        echo "Remove it from game list first if you want to set a custom governor."
+        echo ""
+        echo "⚠️  Reason: Game packages and per-app governors cannot coexist."
+        exit 1
+    fi
+fi
+
+# VALIDATION #2: Check if already has per-app governor
+if [ -f "$APP_GOV_FILE" ]; then
+    if grep -q "^$PKG:" "$APP_GOV_FILE"; then
+        echo "⚠️  Package already has a per-app governor"
+        echo "Package: $PKG"
+        echo "This will UPDATE the existing governor."
+        echo ""
+    fi
+fi
+
+echo "✅ Validation passed"
+echo "🔧 Setting custom governor for: $PKG"
+echo "⚙️  Governor: $GOV"
+echo ""
+
+# Encode package name (replace . with %2E)
+PKG_ENCODED=$(echo "$PKG" | sed 's/\./%2E/g')
+
+# Call API endpoint
+RESPONSE=$(echo "" | nc 127.0.0.1 $API_PORT << EOF
+GET /?action=set_app_governor&pkg=$PKG_ENCODED&governor=$GOV HTTP/1.1
+Host: 127.0.0.1
+Connection: close
+
+EOF
+)
+
+# Parse response
+if echo "$RESPONSE" | grep -q '"status":"success"'; then
+    echo "╔═══════════════════════════════════════════════════╗"
+    echo "║  ✅ SUCCESS                                       ║"
+    echo "╚═══════════════════════════════════════════════════╝"
+    echo ""
+    echo "✓ Package: $PKG"
+    echo "✓ Governor: $GOV"
+    echo ""
+    echo "💡 This governor will be applied when you open the app"
+else
+    echo "❌ Failed to set app governor"
+    echo ""
+    echo "Response:"
+    echo "$RESPONSE" | grep -o '{.*}'
+fi

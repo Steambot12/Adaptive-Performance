@@ -1,2 +1,16 @@
 #!/system/bin/sh
-cat "/data/adb/modules/adaptive_performance/game_packages.txt" 2>/dev/null | nl
+# Adaptive Performance - List Game Packages
+
+GAME_PACKAGES="/data/adb/modules/adaptive_performance/game_packages.txt"
+
+if [ ! -f "$GAME_PACKAGES" ]; then
+    echo "❌ Game list not found"
+    exit 1
+fi
+
+echo "╔═══════════════════════════════════════════════════╗"
+echo "║  🎮 GAME PACKAGES                                 ║"
+echo "╚═══════════════════════════════════════════════════╝"
+echo ""
+
+cat "$GAME_PACKAGES"

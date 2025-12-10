@@ -1,828 +1,1152 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Adaptive Performance v1.1</title>
+    <title>⚡ Adaptive Performance Monitor</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: 'Segoe UI', sans-serif;
-            background: #0d1117;
-            color: #c9d1d9;
-            padding: 20px;
+        :root {
+            --primary: #6750A4;
+            --primary-container: #EADDFF;
+            --on-primary: #FFFFFF;
+            --on-primary-container: #21005E;
+            --secondary: #625B71;
+            --secondary-container: #E8DEF8;
+            --on-secondary-container: #1E192B;
+            --surface: #1C1B1F;
+            --surface-variant: #49454E;
+            --on-surface: #E6E1E5;
+            --on-surface-variant: #CAC4CF;
+            --outline: #948F99;
+            --background: #1C1B1F;
+            --error: #F2B8B5;
+            --success: #A8E6A3;
         }
-        .container { max-width: 900px; margin: 0 auto; }
-        .header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: var(--on-surface);
+            min-height: 100vh;
+            padding-bottom: 80px;
+        }
+
+        .glass-card {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
             padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
+            margin: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+
+        .header {
+            background: rgba(103, 80, 164, 0.2);
+            backdrop-filter: blur(20px);
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .header .subtitle {
+            font-size: 12px;
+            color: var(--on-surface-variant);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .status-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin: 16px;
+        }
+
+        .status-item {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: 16px;
             text-align: center;
         }
-        .header h1 { color: white; font-size: 24px; margin-bottom: 5px; }
-        .header .version { color: rgba(255,255,255,0.8); font-size: 14px; }
 
-        .badge {
-            display: inline-block;
-            padding: 3px 10px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: bold;
-            margin-left: 8px;
-            background: linear-gradient(135deg, #3fb950 0%, #2ea043 100%);
-            color: white;
+        .status-label {
+            font-size: 12px;
+            color: var(--on-surface-variant);
+            margin-bottom: 8px;
         }
 
-        .card {
-            background: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 8px;
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-
-        .card h2 {
-            color: #58a6ff;
+        .status-value {
             font-size: 18px;
-            margin-bottom: 15px;
-            border-bottom: 1px solid #30363d;
-            padding-bottom: 10px;
+            font-weight: 500;
+            color: var(--on-surface);
+        }
+
+        .status-value.idle {
+            color: #90CAF9;
+        }
+
+        .status-value.gaming {
+            color: #F48FB1;
         }
 
         .info-grid {
             display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
+            gap: 12px;
         }
 
         .info-item {
-            background: #0d1117;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
             padding: 12px;
-            border-radius: 6px;
-            border: 1px solid #21262d;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
         }
 
         .info-label {
-            font-size: 12px;
-            color: #8b949e;
-            margin-bottom: 5px;
+            font-size: 14px;
+            color: var(--on-surface-variant);
         }
 
         .info-value {
-            font-size: 16px;
-            color: #c9d1d9;
-            font-weight: 600;
-            word-break: break-word;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--on-surface);
         }
 
-        .status {
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        .section-icon {
+            font-size: 20px;
+            opacity: 0.9;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(103, 80, 164, 0.3);
+            color: var(--on-surface);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .btn:hover:not(:disabled) {
+            background: rgba(103, 80, 164, 0.5);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(103, 80, 164, 0.3);
+        }
+
+        .btn:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: var(--on-primary);
+            border: none;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 12px;
+        }
+
+        select {
+            width: 100%;
+            padding: 12px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--on-surface);
+            font-size: 14px;
+            margin: 8px 0;
+        }
+
+        select option {
+            background: #1C1B1F;
+            color: var(--on-surface);
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 12px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: var(--on-surface);
+            font-size: 14px;
+            margin: 8px 0;
+        }
+
+        .badge {
             display: inline-block;
             padding: 4px 12px;
             border-radius: 12px;
             font-size: 12px;
-            font-weight: bold;
+            font-weight: 500;
+            background: rgba(103, 80, 164, 0.3);
         }
 
-        .status-gaming {
-            background: #da3633;
-            color: white;
-            animation: pulse 2s infinite;
+        .game-list, .app-list {
+            display: grid;
+            gap: 8px;
+            margin-top: 12px;
         }
 
-        .status-idle {
-            background: #6e7681;
-            color: white;
-        }
-
-        @keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.7; }
-        }
-
-        .game-count {
-            display: inline-block;
-            background: #21262d;
-            padding: 5px 12px;
-            border-radius: 6px;
-            font-size: 14px;
-            color: #58a6ff;
-            font-weight: 600;
-            margin-left: 10px;
-        }
-
-        .game-list {
-            background: #0d1117;
-            border: 1px solid #30363d;
-            border-radius: 6px;
-            padding: 10px;
-            max-height: 350px;
-            overflow-y: auto;
-        }
-
-        .game-item {
+        .game-item, .app-item {
             display: flex;
-            align-items: center;
             justify-content: space-between;
-            padding: 10px 12px;
-            margin-bottom: 8px;
-            background: #161b22;
-            border-radius: 4px;
-            border-left: 3px solid #58a6ff;
-            font-family: 'Courier New', monospace;
-            font-size: 13px;
-            color: #c9d1d9;
-            transition: all 0.2s;
-        }
-
-        .game-item:hover {
-            background: #1c2128;
-            border-left-color: #3fb950;
-        }
-
-        .game-item.active {
-            border-left-color: #3fb950;
-            background: #1a2e1a;
-        }
-
-        .game-item.removing {
-            opacity: 0.3;
-            background: #4d1a1a;
-            border-left-color: #f85149;
-            animation: fadeOut 0.3s ease-out;
-        }
-
-        @keyframes fadeOut {
-            from { opacity: 1; transform: translateX(0); }
-            to { opacity: 0.3; transform: translateX(-10px); }
-        }
-
-        .game-item-name { flex: 1; }
-
-        .btn {
-            background: #238636;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            margin-right: 10px;
-            margin-bottom: 10px;
-            transition: background 0.2s;
-            font-weight: 600;
-        }
-
-        .btn:hover:not(:disabled) { background: #2ea043; }
-        .btn:active { transform: scale(0.98); }
-        .btn:disabled { background: #6e7681; cursor: not-allowed; opacity: 0.6; }
-
-        .btn-primary { background: #667eea; }
-        .btn-primary:hover:not(:disabled) { background: #764ba2; }
-
-        .btn-danger {
-            background: #da3633;
-            font-size: 12px;
-            padding: 6px 12px;
-        }
-        .btn-danger:hover:not(:disabled) { background: #b62324; }
-
-        .input-group { margin-bottom: 15px; }
-
-        .input-group label {
-            display: block;
-            margin-bottom: 8px;
-            color: #c9d1d9;
-            font-size: 14px;
-            font-weight: 600;
-        }
-
-        .input-group input[type="text"],
-        .input-group select {
-            width: 100%;
-            padding: 10px 15px;
-            background: #0d1117;
-            border: 2px solid #30363d;
-            border-radius: 6px;
-            color: #c9d1d9;
-            font-size: 14px;
-            font-family: 'Courier New', monospace;
-        }
-
-        .input-group input[type="text"]:focus,
-        .input-group select:focus {
-            outline: none;
-            border-color: #58a6ff;
-        }
-
-        .input-group select {
-            cursor: pointer;
-        }
-
-        .alert {
+            align-items: center;
             padding: 12px;
-            border-radius: 6px;
-            margin-bottom: 15px;
-            font-size: 14px;
-            animation: slideIn 0.3s ease-out;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to { opacity: 1; transform: translateY(0); }
+        .game-name {
+            font-size: 13px;
+            color: var(--on-surface);
+            flex: 1;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
 
-        .alert-success {
-            background: #1a4d2e;
-            border: 1px solid #2ea043;
-            color: #3fb950;
+        .btn-remove {
+            padding: 6px 12px;
+            font-size: 11px;
+            background: rgba(242, 184, 181, 0.2);
+            color: var(--error);
+            border: 1px solid rgba(242, 184, 181, 0.3);
         }
 
-        .alert-error {
-            background: #4d1a1a;
-            border: 1px solid #f85149;
-            color: #f85149;
+        .btn-remove:hover:not(:disabled) {
+            background: rgba(242, 184, 181, 0.4);
         }
 
-        .alert-info {
-            background: #1a2f4d;
-            border: 1px solid #58a6ff;
-            color: #58a6ff;
+        .app-info {
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .app-package {
+            font-size: 13px;
+            color: var(--on-surface);
+            margin-bottom: 4px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .app-governor {
+            font-size: 11px;
+            color: var(--on-surface-variant);
         }
 
         .log-container {
-            background: #0d1117;
-            border: 2px solid #30363d;
-            border-radius: 6px;
-            padding: 15px;
-            height: 350px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 12px;
+            padding: 16px;
+            height: 400px;
             overflow-y: auto;
             font-family: 'Courier New', monospace;
-            font-size: 13px;
+            font-size: 12px;
             line-height: 1.6;
         }
 
-        .log-line {
-            padding: 3px 0;
-            color: #8b949e;
-            white-space: pre-wrap;
-            word-break: break-word;
+        .log-entry {
+            padding: 4px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+            color: var(--on-surface-variant);
         }
 
-        .log-time {
-            color: #58a6ff;
-            margin-right: 8px;
-            font-weight: bold;
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-around;
+            background: rgba(28, 27, 31, 0.95);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 12px 0 20px;
+            z-index: 1000;
         }
 
-        .log-line.gaming { color: #3fb950; font-weight: bold; }
-        .log-line.success { color: #3fb950; }
-        .log-line.command { color: #f0883e; font-weight: bold; }
-
-        .update-indicator {
-            width: 8px;
-            height: 8px;
-            background: #3fb950;
-            border-radius: 50%;
-            display: inline-block;
-            margin-left: 8px;
-            animation: blink 1s infinite;
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            cursor: pointer;
+            padding: 8px 20px;
+            border-radius: 16px;
+            transition: all 0.3s ease;
+            color: var(--on-surface-variant);
         }
 
-        @keyframes blink {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.2; }
+        .nav-item.active {
+            background: rgba(103, 80, 164, 0.2);
+            color: var(--primary);
         }
 
-        .method-info {
-            background: #1a4d2e;
-            border: 1px solid #3fb950;
-            border-radius: 6px;
+        .nav-icon {
+            font-size: 24px;
+            font-weight: 300;
+        }
+
+        .nav-label {
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+            margin: 12px 0;
+            flex-wrap: wrap;
+        }
+
+        .action-buttons .btn {
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .info-box {
+            background: rgba(103, 80, 164, 0.1);
+            border: 1px solid rgba(103, 80, 164, 0.3);
+            border-radius: 12px;
             padding: 12px;
-            margin-bottom: 15px;
+            margin: 12px 0;
             font-size: 12px;
-            color: #3fb950;
+            color: var(--on-surface-variant);
+            line-height: 1.5;
         }
 
-        .chipset-badge {
-            display: inline-block;
-            padding: 4px 10px;
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--on-surface-variant);
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.05);
             border-radius: 4px;
-            font-size: 12px;
-            font-weight: bold;
-            margin-left: 8px;
         }
 
-        .chipset-mediatek {
-            background: #f0883e;
-            color: white;
+        ::-webkit-scrollbar-thumb {
+            background: rgba(103, 80, 164, 0.5);
+            border-radius: 4px;
         }
 
-        .chipset-snapdragon {
-            background: #58a6ff;
-            color: white;
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(103, 80, 164, 0.7);
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>⚡ Adaptive Performance Monitor</h1>
-            <div class="version">v1.1-RELEASE • by Steambot12 </div>
+    <div class="header">
+        <h1>⚡ Adaptive Performance Monitor</h1>
+        <div class="subtitle">v1.1-RELEASE • by Steambot12</div>
+    </div>
+
+    <!-- Tab 1: Main -->
+    <div id="tab-main" class="tab-content active">
+        <div class="status-grid">
+            <div class="status-item">
+                <div class="status-label">Mode</div>
+                <div class="status-value idle" id="mode">IDLE</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">CPU Governor</div>
+                <div class="status-value" id="governor">--</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">Foreground App</div>
+                <div class="status-value" id="foreground-app" style="font-size: 11px;">--</div>
+            </div>
+            <div class="status-item">
+                <div class="status-label">Temperature</div>
+                <div class="status-value" id="temperature">--</div>
+            </div>
         </div>
 
-        <div class="card">
-            <h2>📊 Status <span class="update-indicator"></span></h2>
+        <div class="glass-card">
+            <div class="section-header">
+                <span class="section-icon">⚙</span>
+                Device Information
+            </div>
             <div class="info-grid">
                 <div class="info-item">
-                    <div class="info-label">Mode</div>
-                    <div class="info-value">
-                        <span id="state" class="status status-idle">...</span>
-                    </div>
+                    <span class="info-label">Device</span>
+                    <span class="info-value" id="device">--</span>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">CPU Governor</div>
-                    <div class="info-value" id="governor">--</div>
+                    <span class="info-label">Kernel</span>
+                    <span class="info-value" id="kernel">--</span>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">Foreground App</div>
-                    <div class="info-value" id="foreground" style="font-size: 12px;">--</div>
+                    <span class="info-label">CPU Cores</span>
+                    <span class="info-value" id="cpu-cores">--</span>
                 </div>
                 <div class="info-item">
-                    <div class="info-label">Temperature CPU</div>
-                    <div class="info-value" id="temp">--</div>
+                    <span class="info-label">Chipset</span>
+                    <span class="info-value" id="chipset">--</span>
                 </div>
-            </div>
-        </div>
-
-        <div class="card">
-            <h2>🖥️ Device Info</h2>
-            <div class="info-grid">
-                <div class="info-item">
-                    <div class="info-label">Device</div>
-                    <div class="info-value" id="device">--</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Kernel</div>
-                    <div class="info-value" id="kernel" style="font-size: 12px;">--</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">CPU Cores</div>
-                    <div class="info-value" id="cores">--</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Chipset</div>
-                    <div class="info-value" id="chipset">--</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="card">
-            <h2>⚙️ CPU Governor Gaming</h2>
-
-            <div id="governorAlertContainer"></div>
-
-            <div class="info-grid" style="margin-bottom: 15px;">
-                <div class="info-item">
-                    <div class="info-label">Idle Governor</div>
-                    <div class="info-value" id="idleGovernor">--</div>
-                </div>
-                <div class="info-item">
-                    <div class="info-label">Current Gaming Governor</div>
-                    <div class="info-value" id="currentGamingGov">--</div>
-                </div>
-            </div>
-
-            <div class="input-group">
-                <label>🎮 Select Gaming Governor:</label>
-                <select id="gamingGovernorSelect" onchange="setGamingGovernor()">
-                    <option value="">...</option>
-                </select>
-            </div>
-
-            <div class="method-info">
-                ℹ️ This governor will be used when GAMING mode is active.
-            </div>
-        </div>
-
-        <div class="card">
-            <h2>🎮 Game Package Manager <span class="game-count" id="gameCount">0</span></h2>
-
-            <div id="alertContainer"></div>
-
-            <div class="input-group">
-                <label>➕ Add New Game Package:</label>
-                <input type="text" id="addPackageInput" placeholder="com.garena.game.df">
-            </div>
-
-            <button class="btn btn-primary" onclick="addGamePackage()" id="addBtn">➕ Add Game</button>
-            <button class="btn" onclick="detectCurrentApp()">🔍 Detect App</button>
-            <button class="btn" onclick="forceRefreshGames()">🔄 Refresh</button>
-
-            <h3 style="color: #58a6ff; font-size: 16px; margin: 20px 0 10px 0;">📝 Game List:</h3>
-            <div class="game-list" id="gameList">
-                <div style="text-align: center; color: #8b949e; padding: 20px;">...</div>
-            </div>
-        </div>
-
-        <div class="card">
-            <h2>📝 Live Log <span class="update-indicator"></span></h2>
-
-            <button class="btn" onclick="refreshLog()">🔄 Refresh</button>
-            <button class="btn" onclick="clearLogDisplay()">🗑️ Clear</button>
-
-            <div class="log-container" id="logContainer">
-                <div class="log-line">...</div>
             </div>
         </div>
     </div>
 
+    <!-- Tab 2: Tuning -->
+    <div id="tab-tuning" class="tab-content">
+        <div class="glass-card">
+            <div class="section-header">
+                <span class="section-icon">⚙</span>
+                CPU Governor Settings
+            </div>
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Idle Governor</span>
+                    <span class="info-value" id="idle-governor">--</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Gaming Governor</span>
+                    <span class="info-value" id="gaming-governor">--</span>
+                </div>
+            </div>
+            <select id="governor-select">
+                <option value="">Select Gaming Governor</option>
+            </select>
+            <div class="info-box">
+                ℹ️ This governor will be used when GAMING mode is active. Changes apply immediately to all CPU cores.
+            </div>
+        </div>
+
+        <div class="glass-card">
+            <div class="section-header">
+                <span class="section-icon">◆</span>
+                Game Package Manager
+                <span class="badge" id="game-count">0</span>
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-small" id="btn-detect">⌕ Detect</button>
+                <button class="btn btn-small" id="btn-refresh-games">↻ Refresh</button>
+            </div>
+
+            <input type="text" id="game-package-input" placeholder="com.example.game">
+            <button class="btn btn-primary" id="btn-add-game" style="width: 100%; margin-top: 8px;">+ Add Game</button>
+
+            <div style="margin-top: 16px;">
+                <div class="section-header" style="font-size: 14px;">
+                    <span class="section-icon" style="font-size: 16px;">≡</span>
+                    Game List
+                </div>
+                <div id="game-list" class="game-list">
+                    <div class="empty-state">Loading...</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="glass-card">
+            <div class="section-header">
+                <span class="section-icon">◈</span>
+                Per-App Governor Settings
+                <span class="badge" id="app-count">0</span>
+            </div>
+
+            <input type="text" id="app-package-input" placeholder="Package Name (e.g., com.example.app)">
+            <select id="app-governor-select">
+                <option value="">-- Select Governor --</option>
+            </select>
+            <button class="btn btn-primary" id="btn-add-app" style="width: 100%; margin-top: 8px;">✓ Add App Governor</button>
+
+            <div class="info-box">
+                Package appears instantly in UI and syncs to backend for governor application
+            </div>
+
+            <div style="margin-top: 16px;">
+                <div class="section-header" style="font-size: 14px; display: flex; justify-content: space-between; align-items: center;">
+                    <span style="display: flex; align-items: center; gap: 8px;">
+                        <span class="section-icon" style="font-size: 16px;">≡</span>
+                        Configured Apps
+                    </span>
+                    <button class="btn btn-small" id="btn-refresh-apps">↻ Refresh</button>
+                </div>
+                <div id="app-list" class="app-list">
+                    <div class="empty-state">No custom app governors configured</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tab 3: Log -->
+    <div id="tab-log" class="tab-content">
+        <div class="glass-card">
+            <div class="section-header">
+                <span class="section-icon">≡</span>
+                Live Log
+            </div>
+
+            <div class="action-buttons">
+                <button class="btn btn-small" id="btn-refresh-log">↻ Refresh Log</button>
+                <button class="btn btn-small" id="btn-clear-log">× Clear Display</button>
+            </div>
+
+            <div class="log-container" id="log-container">
+                <div class="log-entry">Initializing...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="bottom-nav">
+        <div class="nav-item active" data-tab="main">
+            <div class="nav-icon">⌂</div>
+            <div class="nav-label">Main</div>
+        </div>
+        <div class="nav-item" data-tab="tuning">
+            <div class="nav-icon">⚙</div>
+            <div class="nav-label">Tuning</div>
+        </div>
+        <div class="nav-item" data-tab="log">
+            <div class="nav-icon">☰</div>
+            <div class="nav-label">Log</div>
+        </div>
+    </div>
+
     <script>
+        // Configuration
         const API_PORT = 9877;
-        let processing = false;
-        let lastGameListJSON = '';
-        let currentForeground = '';
-        let currentConfig = null;
-        let removingPackages = new Set();
+        let updateInterval = null;
+        let lastGovernorChangeTime = 0;
 
-        function showAlert(message, type = 'info', container = 'alertContainer') {
-            const alertContainer = document.getElementById(container);
-            const alertDiv = document.createElement('div');
-            alertDiv.className = `alert alert-${type}`;
-            alertDiv.textContent = message;
-            alertContainer.appendChild(alertDiv);
-            setTimeout(() => alertDiv.remove(), 5000);
+        function log(msg, type = 'info') {
+            const emoji = { info: 'ℹ️', success: '✅', error: '❌', api: '🔌', warn: '⚠️' };
+            console.log(`${emoji[type]} ${msg}`);
         }
 
-        async function callAPI(action, params = {}) {
-            try {
-                let url = `http://127.0.0.1:${API_PORT}/?action=${action}`;
-                for (const [key, value] of Object.entries(params)) {
-                    url += `&${key}=${encodeURIComponent(value)}`;
-                }
-                url += `&t=${Date.now()}`;
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
 
-                const response = await fetch(url, { method: 'GET', cache: 'no-cache' });
-                if (!response.ok) return { status: 'error', message: 'HTTP ' + response.status };
-
-                const text = await response.text();
-                if (!text || text.trim() === '') return { status: 'error', message: 'Empty' };
-
+        // API Call with aggressive cache invalidation
+        async function apiCall(action, params = {}, retries = 2) {
+            for (let attempt = 0; attempt <= retries; attempt++) {
                 try {
-                    return JSON.parse(text);
-                } catch (e) {
-                    return { status: 'partial', message: 'Parse error' };
+                    const queryParams = new URLSearchParams();
+                    queryParams.set('action', action);
+                    queryParams.set('_t', Date.now()); // Cache buster
+
+                    for (const [key, value] of Object.entries(params)) {
+                        queryParams.set(key, value);
+                    }
+
+                    const url = `http://127.0.0.1:${API_PORT}/?${queryParams.toString()}`;
+
+                    if (attempt === 0) {
+                        log(`🔌 API: ${action} ${JSON.stringify(params)}`, 'api');
+                    } else {
+                        log(`🔄 Retry ${attempt}/${retries}: ${action}`, 'warning');
+                    }
+
+                    const controller = new AbortController();
+                    const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+                    const response = await fetch(url, {
+                        method: 'GET',
+                        mode: 'no-cors',
+                        cache: 'no-cache',
+                        signal: controller.signal
+                    });
+
+                    clearTimeout(timeoutId);
+                    log(`📡 API request completed: ${action}`, 'success');
+                    return { status: 'success' };
+
+                } catch (error) {
+                    const isLastAttempt = attempt === retries;
+
+                    if (error.name === 'AbortError') {
+                        if (isLastAttempt) {
+                            log(`⏱️ Timeout after ${retries + 1} attempts: ${action}`, 'error');
+                        }
+                    } else if (error.message.includes('fetch')) {
+                        if (isLastAttempt) {
+                            log(`❌ Connection failed: ${action} (backend busy)`, 'error');
+                        }
+                    } else {
+                        if (isLastAttempt) {
+                            log(`❌ API Error: ${error.message}`, 'error');
+                        }
+                    }
+
+                    if (!isLastAttempt) {
+                        await new Promise(resolve => setTimeout(resolve, 300 * (attempt + 1)));
+                    } else {
+                        return { status: 'error', message: error.message };
+                    }
                 }
+            }
+        }
+        async function fetchJSON(filename, forceRefresh = false) {
+            try {
+                const timestamp = forceRefresh ? Date.now() + Math.random() : Date.now();
+                const response = await fetch(`/${filename}?_=${timestamp}`, {
+                    method: 'GET',
+                    cache: forceRefresh ? 'reload' : 'no-cache',
+                    headers: { 
+                        'Cache-Control': 'no-cache, no-store, must-revalidate',
+                        'Pragma': 'no-cache',
+                        'Expires': '0'
+                    }
+                });
+
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                return await response.json();
             } catch (error) {
-                return { status: 'error', message: error.message };
+                log(`Error loading ${filename}: ${error.message}`, 'error');
+                return null;
             }
         }
 
-        window.addGamePackage = async function() {
-            if (processing) {
-                showAlert('⏳ Please wait...', 'info');
-                return;
+        // Tab switching
+        function initTabs() {
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.addEventListener('click', function() {
+                    const tabName = this.getAttribute('data-tab');
+                    document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+                    document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
+                    document.getElementById(`tab-${tabName}`).classList.add('active');
+                    this.classList.add('active');
+                });
+            });
+        }
+
+        // Update status with force refresh after governor change
+        async function updateStatus(forceRefresh = false) {
+            const data = await fetchJSON('dynamic.json', forceRefresh);
+            if (!data) return;
+
+            const modeEl = document.getElementById('mode');
+            const state = data.state || 'idle';
+            modeEl.textContent = state.toUpperCase();
+            modeEl.className = `status-value ${state}`;
+
+            // Update governor with logging
+            const newGovernor = data.governor || '--';
+            const currentGovernor = document.getElementById('governor').textContent;
+
+            if (newGovernor !== currentGovernor) {
+                log(`Governor changed: ${currentGovernor} → ${newGovernor}`, 'success');
+                document.getElementById('governor').textContent = newGovernor;
+            } else {
+                document.getElementById('governor').textContent = newGovernor;
             }
 
-            const input = document.getElementById('addPackageInput');
-            const pkg = input.value.trim();
-
-            if (!pkg) {
-                showAlert('❌ Package name tidak boleh kosong!', 'error');
-                return;
+            // Check if we need to force refresh after governor change
+            const timeSinceChange = Date.now() - lastGovernorChangeTime;
+            if (timeSinceChange < 5000 && timeSinceChange > 0) {
+                log(`Force refreshing status (${Math.floor(timeSinceChange/1000)}s after governor change)`, 'info');
             }
 
-            const regex = /^[a-z][a-z0-9_]*(\.[a-z0-9_]+)+$/;
-            if (!regex.test(pkg)) {
-                showAlert('❌ Format invalid! Contoh: com.garena.game.df', 'error');
-                return;
+            const fgEl = document.getElementById('foreground-app');
+            const fgApp = data.foreground || 'unknown';
+
+            if (fgApp && fgApp !== 'unknown' && fgApp !== '--' && fgApp.trim().length > 0) {
+                fgEl.textContent = fgApp.length > 25 ? fgApp.substring(0, 22) + '...' : fgApp;
+                fgEl.title = fgApp;
+            } else {
+                fgEl.textContent = 'No app';
             }
 
-            processing = true;
-            const addBtn = document.getElementById('addBtn');
-            addBtn.disabled = true;
-            addBtn.textContent = '⏳ Adding...';
+            const temp = data.temperature || 0;
+            if (temp > 0 && temp < 150000) {
+                document.getElementById('temperature').textContent = (temp / 1000).toFixed(1) + '°C';
+            } else {
+                document.getElementById('temperature').textContent = '--';
+            }
+        }
 
-            try {
-                showAlert(`⏳ Menambahkan: ${pkg}`, 'info');
+        // Update device info
+        async function updateDeviceInfo() {
+            const data = await fetchJSON('static.json');
+            if (!data) return;
 
-                const result = await callAPI('add', { pkg });
+            document.getElementById('device').textContent = data.device || '--';
+            document.getElementById('kernel').textContent = data.kernel || '--';
+            document.getElementById('cpu-cores').textContent = data.cores || '--';
+            document.getElementById('chipset').textContent = data.chipset || '--';
+        }
 
-                if (result.status === 'success' || result.status === 'partial') {
-                    showAlert(`✅ ${pkg} berhasil ditambahkan!`, 'success');
-                    input.value = '';
+        // Update governor settings
+        async function updateGovernorSettings(forceRefresh = false) {
+            const data = await fetchJSON('config.json', forceRefresh);
+            if (!data) return;
 
-                    // Force refresh multiple times
-                    for (let i = 0; i < 5; i++) {
-                        await new Promise(r => setTimeout(r, 400));
-                        await loadGames(true);
-                    }
-                } else {
-                    showAlert(`❌ ${result.message}`, 'error');
+            document.getElementById('idle-governor').textContent = data.default_idle || '--';
+            document.getElementById('gaming-governor').textContent = data.gaming_governor || '--';
+
+            const mainSelect = document.getElementById('governor-select');
+            const appSelect = document.getElementById('app-governor-select');
+
+            if (data.available_governors && data.available_governors.length > 0) {
+                mainSelect.innerHTML = '<option value="">Select Gaming Governor</option>';
+                appSelect.innerHTML = '<option value="">-- Select Governor --</option>';
+
+                data.available_governors.forEach(gov => {
+                    mainSelect.add(new Option(gov, gov));
+                    appSelect.add(new Option(gov, gov));
+                });
+
+                if (data.gaming_governor) {
+                    mainSelect.value = data.gaming_governor;
                 }
-            } catch (error) {
-                showAlert(`❌ Error: ${error.message}`, 'error');
-            } finally {
-                processing = false;
-                addBtn.disabled = false;
-                addBtn.textContent = '➕ Add Game';
             }
-        };
+        }
 
-        window.removeGamePackage = async function(pkg) {
-            if (processing) {
-                showAlert('⏳ Please wait...', 'info');
-                return;
-            }
+        // Governor select handler with enhanced refresh
+        function initGovernorSelect() {
+            const select = document.getElementById('governor-select');
 
-            if (!confirm(`Hapus game: ${pkg}?`)) return;
-
-            processing = true;
-            removingPackages.add(pkg);
-
-            // Immediate UI feedback - mark as removing
-            const gameItems = document.querySelectorAll('.game-item');
-            gameItems.forEach(item => {
-                const nameSpan = item.querySelector('.game-item-name');
-                if (nameSpan && nameSpan.textContent.includes(pkg)) {
-                    item.classList.add('removing');
-                    const removeBtn = item.querySelector('.btn-danger');
-                    if (removeBtn) {
-                        removeBtn.disabled = true;
-                        removeBtn.textContent = '⏳ Removing...';
-                    }
+            // Real-time sync: Watch for changes in Tuning display
+            const observer = new MutationObserver(() => {
+                const tuningGov = document.getElementById('gaming-governor');
+                const selectValue = select.value;
+                if (tuningGov && selectValue) {
+                    // Sync Main Menu display with Tuning dropdown
+                    tuningGov.textContent = selectValue;
+                    log(`🔄 Synced Main Menu: ${selectValue}`, 'info');
                 }
             });
 
-            try {
-                showAlert(`⏳ Menghapus: ${pkg}`, 'info');
-
-                const result = await callAPI('remove', { pkg });
-
-                if (result.status === 'success' || result.status === 'partial') {
-                    showAlert(`✅ ${pkg} berhasil dihapus!`, 'success');
-
-                    // Force immediate reload with timestamp check bypass
-                    lastGameListJSON = '';  // Reset to force update
-
-                    // Force refresh multiple times like add
-                    for (let i = 0; i < 7; i++) {
-                        await new Promise(r => setTimeout(r, 300));
-                        await loadGames(true);
-                    }
-                } else {
-                    showAlert(`❌ ${result.message}`, 'error');
-                }
-            } catch (error) {
-                showAlert(`❌ Error: ${error.message}`, 'error');
-            } finally {
-                removingPackages.delete(pkg);
-                processing = false;
+            // Observe the gaming-governor element in Main Menu
+            const mainGovDisplay = document.getElementById('gaming-governor');
+            if (mainGovDisplay) {
+                observer.observe(select, { attributes: true, childList: true, subtree: true });
             }
-        };
 
-        window.setGamingGovernor = async function() {
-            const select = document.getElementById('gamingGovernorSelect');
-            const governor = select.value;
+            let governorChangeTimeout = null;
+            let isChangingGovernor = false;
 
-            if (!governor) return;
+            select.addEventListener('change', async function() {
+                const governor = this.value;
+                if (!governor) return;
 
-            try {
-                showAlert(`⏳ Setting: ${governor}`, 'info', 'governorAlertContainer');
-
-                const result = await callAPI('set_governor', { governor });
-
-                if (result.status === 'success') {
-                    showAlert(`✅ Set to: ${governor}`, 'success', 'governorAlertContainer');
-                    await loadConfig();
-                } else {
-                    showAlert(`❌ ${result.message}`, 'error', 'governorAlertContainer');
-                }
-            } catch (error) {
-                showAlert(`❌ Error`, 'error', 'governorAlertContainer');
-            }
-        };
-
-        window.detectCurrentApp = async function() {
-            try {
-                const data = await fetchJSON('/dynamic.json');
-                if (!data || data.foreground === 'unknown') {
-                    showAlert('❌ Tidak ada app yang terdeteksi', 'error');
+                // Prevent rapid consecutive changes
+                if (isChangingGovernor) {
+                    log(`⚠️ Governor change in progress, please wait...`, 'warning');
                     return;
                 }
 
-                const input = document.getElementById('addPackageInput');
-                input.value = data.foreground;
-                showAlert(`✅ Terdeteksi: ${data.foreground}`, 'success');
-            } catch (error) {
-                showAlert(`❌ Error deteksi`, 'error');
-            }
-        };
-
-        window.forceRefreshGames = async function() {
-            try {
-                showAlert('🔄 Refreshing...', 'info');
-
-                lastGameListJSON = '';  // Force update
-
-                for (let i = 0; i < 5; i++) {
-                    await loadGames(true);
-                    await new Promise(r => setTimeout(r, 400));
+                // Clear any pending timeout
+                if (governorChangeTimeout) {
+                    clearTimeout(governorChangeTimeout);
                 }
 
-                showAlert('✅ Refreshed', 'success');
-            } catch (error) {
-                showAlert('❌ Refresh error', 'error');
-            }
-        };
+                // Debounce: wait 300ms before processing
+                governorChangeTimeout = setTimeout(async () => {
+                    isChangingGovernor = true;
+                    log(`⚙️ Setting gaming governor: ${governor}`, 'info');
+                    this.disabled = true;
 
-        async function fetchJSON(endpoint) {
-            try {
-                const response = await fetch(endpoint + '?t=' + Date.now(), { cache: 'no-cache' });
-                if (!response.ok) return null;
-                return await response.json();
-            } catch (error) {
-                return null;
-            }
+                    try {
+                        // IMMEDIATE UPDATE: Sync Main Menu display
+                        const mainGovDisplay = document.getElementById('gaming-governor');
+                        if (mainGovDisplay) {
+                            mainGovDisplay.textContent = governor;
+                            log(`✅ Main Menu updated: ${governor}`, 'success');
+                        }
+
+                        // Call API with retry
+                        const result = await apiCall('set_governor', { governor }, 2);
+
+                        if (result.status === 'success') {
+                            log(`✅ Gaming governor configured: ${governor}`, 'success');
+                            lastGovernorChangeTime = Date.now();
+
+                            // Refresh sequence
+                            setTimeout(async () => {
+                                const data = await fetchJSON('config.json', true);
+                                if (data && data.gaming_governor && mainGovDisplay) {
+                                    mainGovDisplay.textContent = data.gaming_governor;
+                                    log(`🔄 Refresh 1: ${data.gaming_governor}`, 'info');
+                                }
+                            }, 500);
+
+                            setTimeout(async () => {
+                                const data = await fetchJSON('config.json', true);
+                                if (data && data.gaming_governor && mainGovDisplay) {
+                                    mainGovDisplay.textContent = data.gaming_governor;
+                                    log(`🔄 Refresh 2: ${data.gaming_governor}`, 'info');
+                                }
+                            }, 1000);
+
+                            setTimeout(async () => {
+                                const data = await fetchJSON('config.json', true);
+                                if (data && data.gaming_governor && mainGovDisplay) {
+                                    mainGovDisplay.textContent = data.gaming_governor;
+                                    log(`🔄 Refresh 3: ${data.gaming_governor}`, 'info');
+                                }
+                            }, 1500);
+
+                            setTimeout(async () => {
+                                await updateGovernorSettings(true);
+                                await updateStatus(true);
+                                log('✅ Refresh complete', 'success');
+                            }, 5000);
+                        } else {
+                            log(`❌ Failed to set governor: ${result.message}`, 'error');
+                        }
+                    } catch (error) {
+                        log(`❌ Error: ${error.message}`, 'error');
+                    } finally {
+                        this.disabled = false;
+                        isChangingGovernor = false;
+                    }
+                }, 300);
+            })
         }
 
-        async function fetchText(url) {
-            try {
-                const response = await fetch(url + '?t=' + Date.now(), { cache: 'no-cache' });
-                if (!response.ok) return null;
-                return await response.text();
-            } catch (error) {
-                return null;
-            }
-        }
-
-        function formatTemp(milli) {
-            const n = parseInt(milli);
-            if (!n || n <= 0) return 'N/A';
-            return (n / 1000).toFixed(1) + '°C';
-        }
-
-        async function loadConfig() {
-            const data = await fetchJSON('/config.json');
-            if (!data) return;
-
-            currentConfig = data;
-
-            const chipsetEl = document.getElementById('chipset');
-            const chipset = data.chipset || 'unknown';
-            const badgeClass = chipset === 'mediatek' ? 'chipset-mediatek' : 'chipset-snapdragon';
-            chipsetEl.innerHTML = `${chipset.toUpperCase()} <span class="${badgeClass}">${chipset === 'mediatek' ? '📱' : '🔷'}</span>`;
-
-            document.getElementById('idleGovernor').textContent = data.default_idle || '--';
-            document.getElementById('currentGamingGov').textContent = data.gaming_governor || '--';
-
-            const select = document.getElementById('gamingGovernorSelect');
-            select.innerHTML = '';
-
-            const governors = data.available_governors || [];
-            governors.forEach(gov => {
-                const option = document.createElement('option');
-                option.value = gov;
-                option.textContent = gov;
-                if (gov === data.gaming_governor) {
-                    option.selected = true;
-                }
-                select.appendChild(option);
-            });
-        }
-
-        async function loadStatic() {
-            const data = await fetchJSON('/static.json');
-            if (!data) return;
-
-            document.getElementById('device').textContent = data.device || 'Unknown';
-            document.getElementById('kernel').textContent = data.kernel || 'Unknown';
-            document.getElementById('cores').textContent = data.cores || 0;
-        }
-
-        async function loadDynamic() {
-            const data = await fetchJSON('/dynamic.json');
-            if (!data) return;
-
-            currentForeground = data.foreground;
-
-            const stateEl = document.getElementById('state');
-            if (data.state === 'gaming') {
-                stateEl.textContent = 'GAMING 🎮';
-                stateEl.className = 'status status-gaming';
-            } else {
-                stateEl.textContent = 'IDLE 💤';
-                stateEl.className = 'status status-idle';
-            }
-
-            document.getElementById('governor').textContent = data.governor || 'Unknown';
-            document.getElementById('foreground').textContent = data.foreground === 'unknown' ? 'None' : data.foreground;
-            document.getElementById('temp').textContent = formatTemp(data.temperature);
-        }
-
-        window.loadGames = async function(forceRefresh = false) {
-            const data = await fetchJSON('/games.json');
-            if (!data) return;
-
-            const currentJSON = JSON.stringify(data);
-            if (!forceRefresh && currentJSON === lastGameListJSON) return;
-
-            lastGameListJSON = currentJSON;
-
-            const gameList = document.getElementById('gameList');
-            const games = data.games || [];
-
-            document.getElementById('gameCount').textContent = `${games.length} games`;
-
-            if (games.length === 0) {
-                gameList.innerHTML = '<div style="text-align: center; color: #8b949e; padding: 20px;">Belum ada game</div>';
+        // Refresh game list
+        async function refreshGameList() {
+            const data = await fetchJSON('games.json');
+            if (!data) {
+                document.getElementById('game-list').innerHTML = '<div class="empty-state">Error loading</div>';
                 return;
             }
 
-            gameList.innerHTML = '';
-            games.forEach((pkg, index) => {
-                const item = document.createElement('div');
-                item.className = 'game-item';
-                if (pkg === currentForeground) item.classList.add('active');
-                if (removingPackages.has(pkg)) item.classList.add('removing');
+            const list = document.getElementById('game-list');
+            document.getElementById('game-count').textContent = data.count || 0;
 
-                const nameSpan = document.createElement('span');
-                nameSpan.className = 'game-item-name';
-                nameSpan.textContent = `${index + 1}. ${pkg}`;
-                if (pkg === currentForeground) nameSpan.textContent += ' 🎮';
+            if (data.games && data.games.length > 0) {
+                list.innerHTML = '';
+                data.games.forEach(pkg => {
+                    const item = document.createElement('div');
+                    item.className = 'game-item';
 
-                const removeBtn = document.createElement('button');
-                removeBtn.className = 'btn btn-danger';
-                removeBtn.textContent = removingPackages.has(pkg) ? '⏳ Removing...' : '🗑️ Remove';
-                removeBtn.disabled = removingPackages.has(pkg);
-                removeBtn.onclick = () => removeGamePackage(pkg);
+                    const name = document.createElement('span');
+                    name.className = 'game-name';
+                    name.textContent = pkg;
 
-                item.appendChild(nameSpan);
-                item.appendChild(removeBtn);
-                gameList.appendChild(item);
-            });
-        };
+                    const btn = document.createElement('button');
+                    btn.className = 'btn btn-small btn-remove';
+                    btn.textContent = '× Remove';
+                    btn.onclick = () => removeGame(pkg);
 
-        async function loadLog() {
-            const logText = await fetchText('/log.txt');
-            if (!logText) return;
+                    item.appendChild(name);
+                    item.appendChild(btn);
+                    list.appendChild(item);
+                });
+            } else {
+                list.innerHTML = '<div class="empty-state">No games</div>';
+            }
+        }
 
-            const container = document.getElementById('logContainer');
-            const lines = logText.trim().split('\n').slice(-80);
+        // Add game
+        async function addGame() {
+            const input = document.getElementById('game-package-input');
+            const pkg = input.value.trim();
 
-            container.innerHTML = '';
-            lines.forEach(line => {
-                const div = document.createElement('div');
-                div.className = 'log-line';
+            if (!pkg) {
+                alert('❌ Please enter a package name');
+                return;
+            }
 
-                if (line.includes('GAMING') || line.includes('🎮')) div.classList.add('gaming');
-                else if (line.includes('ADD') || line.includes('REMOVE') || line.includes('SET')) div.classList.add('command');
-                else if (line.includes('✅')) div.classList.add('success');
+            if (!/^[a-z][a-z0-9_]*(\.[a-z0-9_]+)+$/.test(pkg)) {
+                alert('❌ Invalid format. Use: com.example.app');
+                return;
+            }
 
-                const match = line.match(/\[(\d{2}:\d{2}:\d{2})\](.+)/);
-                if (match) {
-                    div.innerHTML = `<span class="log-time">[${match[1]}]</span>${match[2]}`;
+            const btn = document.getElementById('btn-add-game');
+            btn.disabled = true;
+            btn.textContent = '⏳ Adding...';
+
+            try {
+                await apiCall('add', { pkg });
+
+                // Immediate refresh to check if added
+                await refreshGameList();
+
+                // Check if package now in list
+                const data = await fetchJSON('games.json');
+                if (data && data.games && data.games.includes(pkg)) {
+                    // Success!
+                    input.value = '';
+                    alert(`✅ Added: ${pkg}`);
                 } else {
-                    div.textContent = line;
+                    // Not added (duplicate or conflict)
+                    alert(`❌ Failed to add: ${pkg}\n\nPackage was not added (duplicate or conflict)`);
                 }
 
-                container.appendChild(div);
-            });
-
-            container.scrollTop = container.scrollHeight;
+            } catch (e) {
+                alert(`❌ Network error: ${e.message}`);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '+ Add Game';
+            }
         }
 
-        function refreshLog() { loadLog(); }
+        // Remove game
+        async function removeGame(pkg) {
+            if (!confirm(`Remove "${pkg}"?`)) return;
+
+            await apiCall('remove', { pkg });
+            alert(`✅ Removed: ${pkg}`);
+            setTimeout(() => refreshGameList(), 1000);
+        }
+
+        // Detect current app
+        async function detectCurrentApp() {
+            const data = await fetchJSON('dynamic.json');
+            if (!data || !data.foreground || data.foreground === 'unknown') {
+                alert('❌ No app detected');
+                return;
+            }
+            document.getElementById('game-package-input').value = data.foreground;
+            alert(`✓ Detected: ${data.foreground}`);
+        }
+
+        // Refresh app list
+        async function refreshAppList() {
+            const data = await fetchJSON('app_governors.json');
+            if (!data) {
+                document.getElementById('app-list').innerHTML = '<div class="empty-state">Error</div>';
+                return;
+            }
+
+            const list = document.getElementById('app-list');
+            document.getElementById('app-count').textContent = data.count || 0;
+
+            if (data.app_governors && data.app_governors.length > 0) {
+                list.innerHTML = '';
+                data.app_governors.forEach(app => {
+                    const item = document.createElement('div');
+                    item.className = 'app-item';
+
+                    const info = document.createElement('div');
+                    info.className = 'app-info';
+
+                    const pkgDiv = document.createElement('div');
+                    pkgDiv.className = 'app-package';
+                    pkgDiv.textContent = app.package;
+
+                    const govDiv = document.createElement('div');
+                    govDiv.className = 'app-governor';
+                    govDiv.textContent = `Governor: ${app.governor}`;
+
+                    info.appendChild(pkgDiv);
+                    info.appendChild(govDiv);
+
+                    const btn = document.createElement('button');
+                    btn.className = 'btn btn-small btn-remove';
+                    btn.textContent = '×';
+                    btn.onclick = () => removeAppGovernor(app.package);
+
+                    item.appendChild(info);
+                    item.appendChild(btn);
+                    list.appendChild(item);
+                });
+            } else {
+                list.innerHTML = '<div class="empty-state">No custom governors</div>';
+            }
+        }
+
+        // Add app governor
+        async function addAppGovernor() {
+            const pkgInput = document.getElementById('app-package-input');
+            const govSelect = document.getElementById('app-governor-select');
+
+            const pkg = pkgInput.value.trim();
+            const governor = govSelect.value;
+
+            if (!pkg || !governor) {
+                alert('❌ Please enter package and select governor');
+                return;
+            }
+
+            if (!/^[a-z][a-z0-9_]*(\.[a-z0-9_]+)+$/.test(pkg)) {
+                alert('❌ Invalid format. Use: com.example.app');
+                return;
+            }
+
+            const btn = document.getElementById('btn-add-app');
+            btn.disabled = true;
+            btn.textContent = '⏳ Adding...';
+
+            try {
+                await apiCall('set_app_governor', { pkg, governor });
+
+                // Immediate refresh
+                await refreshAppList();
+
+                // Check if added
+                const data = await fetchJSON('app_governors.json');
+                const added = data && data.app_governors && 
+                             data.app_governors.some(app => app.package === pkg);
+
+                if (added) {
+                    // Success!
+                    pkgInput.value = '';
+                    govSelect.value = '';
+                    alert(`✅ Added: ${pkg} → ${governor}`);
+                } else {
+                    // Not added (conflict)
+                    alert(`❌ Failed to set governor\n\nPackage not added (conflict or error)`);
+                }
+
+            } catch (e) {
+                alert(`❌ Network error: ${e.message}`);
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '✓ Add App Governor';
+            }
+        }
+
+        // Remove app governor
+        async function removeAppGovernor(pkg) {
+            if (!confirm(`Remove custom governor for "${pkg}"?`)) return;
+
+            await apiCall('remove_app_governor', { pkg });
+            alert(`✅ Removed: ${pkg}`);
+            setTimeout(() => refreshAppList(), 1000);
+        }
+
+        // Refresh log
+        async function refreshLog() {
+            try {
+                const response = await fetch(`/log.txt?_=${Date.now()}`, {cache: 'no-cache'});
+                const text = await response.text();
+                const container = document.getElementById('log-container');
+                const lines = text.split('\n').filter(line => line.trim());
+
+                if (lines.length > 0) {
+                    container.innerHTML = lines.slice(-50).map(entry => 
+                        `<div class="log-entry">${escapeHtml(entry)}</div>`
+                    ).join('');
+                    container.scrollTop = container.scrollHeight;
+                } else {
+                    container.innerHTML = '<div class="log-entry">No logs</div>';
+                }
+            } catch (error) {
+                log('Error loading log', 'error');
+            }
+        }
+
         function clearLogDisplay() {
-            document.getElementById('logContainer').innerHTML = '<div class="log-line" style="text-align: center;">Cleared</div>';
+            document.getElementById('log-container').innerHTML = '<div class="log-entry">Cleared</div>';
         }
 
-        document.getElementById('addPackageInput').addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') addGamePackage();
-        });
+        // Init event listeners
+        function initEventListeners() {
+            document.getElementById('btn-detect').addEventListener('click', detectCurrentApp);
+            document.getElementById('btn-refresh-games').addEventListener('click', refreshGameList);
+            document.getElementById('btn-add-game').addEventListener('click', addGame);
+            document.getElementById('btn-add-app').addEventListener('click', addAppGovernor);
+            document.getElementById('btn-refresh-apps').addEventListener('click', refreshAppList);
+            document.getElementById('btn-refresh-log').addEventListener('click', refreshLog);
+            document.getElementById('btn-clear-log').addEventListener('click', clearLogDisplay);
 
-        (async function() {
-            console.log('Adaptive Performance v3.7.9 FIX');
-            console.log('Remove game instant disappear!');
+            document.getElementById('game-package-input').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') addGame();
+            });
+        }
 
-            const loadPromises = [
-                loadConfig(),
-                loadStatic(),
-                loadDynamic(),
-                loadGames(),
-                loadLog()
-            ];
+        // Initialize with enhanced status monitoring
+        async function initialize() {
+            log('=== DASHBOARD INITIALIZING ===', 'info');
 
-            await Promise.all(loadPromises);
+            initTabs();
+            initGovernorSelect();
+            initEventListeners();
 
-            setInterval(loadConfig, 5000);
-            setInterval(loadStatic, 10000);
-            setInterval(loadDynamic, 1000);
-            setInterval(() => loadGames(false), 1000);
-            setInterval(loadLog, 2000);
+            await Promise.all([
+                updateStatus(),
+                updateDeviceInfo(),
+                updateGovernorSettings(),
+                refreshGameList(),
+                refreshAppList(),
+                refreshLog()
+            ]);
 
-            console.log('✅ Ready - remove fix applied!');
-        })();
+            // Enhanced status update with force refresh detection
+            if (updateInterval) clearInterval(updateInterval);
+            updateInterval = setInterval(() => {
+                // Check if we're within 5 seconds of a governor change
+                const timeSinceChange = Date.now() - lastGovernorChangeTime;
+                const needsForceRefresh = timeSinceChange < 5000 && timeSinceChange > 0;
+
+                updateStatus(needsForceRefresh);
+            }, 2000);
+
+            setInterval(() => {
+                if (document.getElementById('tab-log').classList.contains('active')) {
+                    refreshLog();
+                }
+            }, 5000);
+
+            log('=== DASHBOARD READY ===', 'success');
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initialize);
+        } else {
+            initialize();
+        }
     </script>
 </body>
 </html>

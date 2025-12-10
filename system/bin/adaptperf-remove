@@ -1,9 +1,30 @@
 #!/system/bin/sh
-GAME_PACKAGES="/data/adb/modules/adaptive_performance/game_packages.txt"
-[ -z "$1" ] && echo "Usage: adaptperf-remove <package>" && exit 1
+# Adaptive Performance - Remove Game Package
+
+API_PORT=9877
 PKG="$1"
-grep -Fxv "$PKG" "$GAME_PACKAGES" > "${GAME_PACKAGES}.tmp" 2>/dev/null
-mv -f "${GAME_PACKAGES}.tmp" "$GAME_PACKAGES"
-chmod 666 "$GAME_PACKAGES" 2>/dev/null
-sync
-echo "✅ Removed: $PKG"
+
+[ -z "$PKG" ] && {
+    echo "❌ Usage: adaptperf-remove <package>"
+    echo "Example: adaptperf-remove com.garena.game.df"
+    exit 1
+}
+
+echo "🗑️  Removing game package: $PKG"
+
+PKG_ENCODED=$(echo "$PKG" | sed 's/\./%2E/g')
+
+RESPONSE=$(echo "" | nc 127.0.0.1 $API_PORT << EOF
+GET /?action=remove&pkg=$PKG_ENCODED HTTP/1.1
+Host: 127.0.0.1
+Connection: close
+
+EOF
+)
+
+if echo "$RESPONSE" | grep -q '"status":"success"'; then
+    echo "✅ Package removed successfully"
+else
+    echo "❌ Failed to remove package"
+    echo "$RESPONSE" | grep -o '{.*}'
+fi

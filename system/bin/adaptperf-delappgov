@@ -1,0 +1,40 @@
+#!/system/bin/sh
+# Adaptive Performance - Remove App Governor (API Version)
+
+API_PORT=9877
+PKG="$1"
+
+[ -z "$PKG" ] && {
+    echo "❌ Usage: adaptperf-delappgov <package>"
+    echo "Example: adaptperf-delappgov com.proxima.dfm"
+    exit 1
+}
+
+echo "🗑️  Removing custom governor for: $PKG"
+echo ""
+
+# Call API endpoint (sama dengan dashboard)
+RESPONSE=$(echo "" | nc 127.0.0.1 $API_PORT << EOF
+GET /?action=remove_app_governor&pkg=$PKG HTTP/1.1
+Host: 127.0.0.1
+Connection: close
+
+EOF
+)
+
+# Parse response
+if echo "$RESPONSE" | grep -q '"status":"success"'; then
+    echo "╔═══════════════════════════════════════════════════╗"
+    echo "║  ✅ SUCCESS                                       ║"
+    echo "╚═══════════════════════════════════════════════════╝"
+    echo ""
+    echo "✓ Custom governor removed: $PKG"
+    echo "✓ Config reset to default"
+    echo ""
+    echo "💡 Check log: cat /data/local/tmp/adaptive_perf.log"
+else
+    echo "❌ Failed to remove app governor"
+    echo ""
+    echo "Response:"
+    echo "$RESPONSE" | grep -o '{.*}'
+fi

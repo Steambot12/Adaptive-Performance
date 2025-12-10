@@ -1,0 +1,33 @@
+#!/system/bin/sh
+# Adaptive Performance - List App Governors
+
+APP_GOVERNORS="/data/adb/modules/adaptive_performance/app_governors.txt"
+
+if [ ! -f "$APP_GOVERNORS" ] || [ ! -s "$APP_GOVERNORS" ]; then
+    echo "ℹ️  No custom app governors configured"
+    exit 0
+fi
+
+echo "╔═══════════════════════════════════════════════════╗"
+echo "║  📱 CUSTOM APP GOVERNORS                          ║"
+echo "╚═══════════════════════════════════════════════════╝"
+echo ""
+
+count=0
+while IFS='=' read -r pkg gov; do
+    [ -z "$pkg" ] && continue
+    pkg=$(echo "$pkg" | tr -d '\r\n\t' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+    gov=$(echo "$gov" | tr -d '\r\n\t' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+    [ -z "$pkg" ] || [ -z "$gov" ] && continue
+    
+    count=$((count + 1))
+    echo "[$count] $pkg"
+    echo "    └─ Governor: $gov"
+    echo ""
+done < "$APP_GOVERNORS"
+
+if [ $count -eq 0 ]; then
+    echo "ℹ️  No custom app governors configured"
+else
+    echo "Total: $count app(s)"
+fi
