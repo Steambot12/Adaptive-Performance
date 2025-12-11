@@ -907,10 +907,10 @@
                 return;
             }
 
-            if (!/^[a-z][a-z0-9_]*(\.[a-z0-9_]+)+$/.test(pkg)) {
-                alert('❌ Invalid format. Use: com.example.app');
-                return;
-            }
+            if (!/^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)+$/.test(pkg)) {
+				alert('❌ Invalid format. Use: com.example.app');
+				return;
+			}
 
             const btn = document.getElementById('btn-add-game');
             btn.disabled = true;
@@ -1019,10 +1019,10 @@
                 return;
             }
 
-            if (!/^[a-z][a-z0-9_]*(\.[a-z0-9_]+)+$/.test(pkg)) {
-                alert('❌ Invalid format. Use: com.example.app');
-                return;
-            }
+            if (!/^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)+$/.test(pkg)) {
+				alert('❌ Invalid format. Use: com.example.app');
+				return;
+			}
 
             const btn = document.getElementById('btn-add-app');
             btn.disabled = true;

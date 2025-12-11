@@ -37,7 +37,7 @@ fi
 echo "✅ Validation passed"
 echo "➕ Adding game package: $PKG"
 
-PKG_ENCODED=$(echo "$PKG" | sed 's/\./%2E/g')
+PKG_ENCODED=$(echo "$PKG" | sed 's/\./%2E/g; s/ /%20/g')
 
 RESPONSE=$(echo "" | nc 127.0.0.1 $API_PORT << EOF
 GET /?action=add&pkg=$PKG_ENCODED HTTP/1.1

@@ -517,7 +517,7 @@ add_package() {
   pkg=$(echo "$pkg" | tr -d '\r\n\t' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' 2>/dev/null)
 
   # Format validation
-  echo "$pkg" | grep -Eq '^[a-z][a-z0-9_]*(\.[a-z0-9_]+)+$' 2>/dev/null || return 1
+  echo "$pkg" | grep -Eq '^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)+$' 2>/dev/null || return 1
 
   # VALIDATION #1: Check duplicate (BEFORE adding!)
   if grep -Fxq "$pkg" "$GAME_PACKAGES" 2>/dev/null; then
