@@ -1,261 +1,253 @@
-# ⚡ Adaptive Performance
+# Adaptive Performance
 
-<div align="center">
-
-![Version](https://img.shields.io/badge/version-1.1-blue.svg)
+![Version](https://img.shields.io/badge/version-1.2-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-Android%208.0+-green.svg)
 ![Magisk](https://img.shields.io/badge/Magisk-20.4+-red.svg)
 
-**Intelligent CPU governor management for Android gaming and daily use**
-
-[Features](#-features) • [Installation](#-installation) • [Usage](#-usage) • [Dashboard](#-web-dashboard) • [CLI Reference](#-cli-reference)
-
-</div>
+Adaptive Performance is a Magisk / KernelSU module that automatically switches CPU governors based on the foreground application. It balances performance and battery life by applying the right governor for gaming, specific apps, or idle states — without any manual intervention.
 
 ---
 
-## 📖 About
+## Table of Contents
 
-Adaptive Performance is a module that automatically switches CPU governors based on the foreground application. It intelligently balances performance and battery life by applying optimal governors for gaming, specific apps, or idle states.
-
-### Why Use This?
-
-- **Gaming**: Automatically apply performance governor when launching games
-- **Customization**: Set different governors for different apps (e.g., conservative for browser, performance for benchmarks)
-- **Efficiency**: Return to power-saving mode when idle
-- **Transparency**: Monitor everything via web dashboard with real-time updates
+- [Features](#features)
+- [Requirements](#requirements)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [Web Dashboard](#web-dashboard)
+- [CLI Reference](#cli-reference)
+- [REST API](#rest-api)
+- [Configuration Files](#configuration-files)
+- [How It Works](#how-it-works)
+- [Troubleshooting](#troubleshooting)
+- [Uninstallation](#uninstallation)
+- [Changelog](#changelog)
 
 ---
 
-## ✨ Features
+## Features
 
-<table>
-<tr>
-<td width="50%">
+**Core**
+- Automatic CPU governor switching based on foreground app
+- Game list: apply a dedicated gaming governor when a registered game is running
+- Per-app governor: assign a specific governor to any non-game application
+- Priority system: Per-app governor > Game list > Idle governor
+- Persist all configuration across reboots
+- Stock thermal management is preserved — no override
 
-**Core Functionality**
-- 🎮 Auto-detect game packages
-- ⚙️ Per-app governor customization
-- 🔄 Automatic governor switching
-- 💾 Persist configuration after reboot
-- 🛡️ Stock thermal management
-
-</td>
-<td width="50%">
-
-**Management Tools**
-- 🌐 Web dashboard (port 9876)
-- 🖥️ Full CLI interface
-- 📊 Real-time monitoring
-- 🔧 REST API (port 9877)
-- 📝 Comprehensive logging
-
-</td>
-</tr>
-<tr>
-<td width="50%">
+**Dashboard & Monitoring**
+- Web dashboard accessible via browser at port 9876
+- Real-time status: mode (IDLE / GAMING / CUSTOM), active governor, foreground app, temperature
+- Device info: device name, kernel, CPU cores, chipset, idle governor
+- Live log viewer with auto-refresh
+- REST API on port 9877 for scripting and automation
 
 **Compatibility**
-- 📱 Android 8.0+
-- 🔌 Mediatek & Snapdragon
-- 🧩 Universal device support
-- 💽 Auto kernel config backup
-- ⚡ Multi-core CPU support
-
-</td>
-<td width="50%">
+- Android 8.0 and above
+- Mediatek and Snapdragon chipsets
+- Works with stock kernels; benefits from custom kernels with additional governor options
+- Supports multi-core CPU configurations
 
 **Safety**
-- ✅ Non-destructive installation
-- 🔙 Automatic config restoration
-- 🧪 Conflict validation
-- 🔒 Stock config preservation
-- 🗑️ Clean uninstallation
-
-</td>
-</tr>
-</table>
+- Non-destructive installation — original governor and kernel tunables are backed up
+- Automatic restoration to stock governor on idle
+- Conflict validation: prevents a package from appearing in both game list and per-app config
+- Clean uninstallation with full config removal
 
 ---
 
-## 📋 Requirements
+## Requirements
 
-- **Magisk** 20.4+ or **KernelSU**
-- **Android** 8.0 (Oreo) or higher
-- **Root access** (obviously)
-- **Custom kernel** with multiple governors *(optional but recommended)*
-
-> **Note**: Module works with stock kernels but benefits greatly from custom kernels that offer more governor options (e.g., Kirisakura, Stratosphere, Genom).
+- Magisk 20.4+ or KernelSU
+- Android 8.0 (Oreo) or higher
+- Root access
+- Custom kernel with multiple governors is optional but recommended for wider governor choices
 
 ---
 
-## 📦 Installation
+## Installation
 
-### Method 1: Magisk Manager / KernelSU (Recommended)
+**Via Magisk Manager or KernelSU (recommended)**
 
-1. Download the latest `AdaptivePerformance-v1.1.zip` from [Releases](https://github.com/Steambot12/Adaptive-Performance/releases)
-2. Open Magisk Manager/KernelSU → **Modules** → **Install from storage**
-3. Select the downloaded ZIP file
+1. Download the latest `AdaptivePerformance-v1.2.zip` from [Releases](https://github.com/Steambot12/Adaptive-Performance/releases)
+2. Open Magisk Manager or KernelSU → Modules → Install from storage
+3. Select the downloaded ZIP
 4. Wait for installation to complete
-5. **Reboot** your device
-6. Verify installation:
-adaptperf-status
+5. Reboot the device
 
+**Via ADB**
 
-### Method 2: ADB Sideload
-
-adb push AdaptivePerformance-v1.1.zip /sdcard/
-adb shell su -c magisk --install-module /sdcard/AdaptivePerformance-v1.1.zip
+```
+adb push AdaptivePerformance-v1.2.zip /sdcard/
+adb shell su -c magisk --install-module /sdcard/AdaptivePerformance-v1.2.zip
 adb reboot
+```
 
+**What happens during installation**
 
-### What Happens During Installation
-
-- ✅ Detects and saves stock CPU governor
-- ✅ Backs up kernel configuration
-- ✅ Creates default game list (Delta Force, Mobile Legends)
-- ✅ Sets up CLI commands in `/system/bin/`
-- ✅ Prepares web dashboard files
+- Detects and saves the stock CPU governor
+- Backs up kernel governor tunables
+- Creates a default game list (Delta Force, Mobile Legends)
+- Sets up CLI commands in `/system/bin/`
+- Prepares web dashboard files
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
-After installation and reboot, the module automatically starts. Here's how to get going:
+After installation and reboot, the module starts automatically.
 
-### 1. Check Status
+**Check module status**
+```
 adaptperf-status
+```
 
-
-### 2. Access Dashboard
-Open browser and navigate to:
+**Open the web dashboard**
+```
 http://127.0.0.1:9876
+```
 
+**Add games to the game list**
+```
+adaptperf-add com.tencent.ig
+adaptperf-add com.dts.freefireth
+```
 
-### 3. Add Your Games
-adaptperf-add com.tencent.ig # PUBG Mobile
-adaptperf-add com.dts.freefireth # Free Fire
-
-
-### 4. Customize Governor (Optional)
-Set gaming governor
+**Set the gaming governor**
+```
 adaptperf-setgov schedutil
+```
 
-Set per-app governor
+**Set a per-app governor**
+```
 adaptperf-setappgov com.android.chrome conservative
-
+```
 
 ---
 
-## 💻 Usage
+## Web Dashboard
 
-### 🌐 Web Dashboard
-
-The web interface provides comprehensive monitoring and management capabilities.
-
-**Access Locally:**
+Access the dashboard locally from the device browser:
+```
 http://127.0.0.1:9876
+```
 
-
-**Access from PC:**
-Forward port via ADB
+Access from a PC via ADB port forwarding:
+```
 adb forward tcp:9876 tcp:9876
+adb forward tcp:9877 tcp:9877
+```
+Then open `http://localhost:9876` in the PC browser.
 
-Open in browser
-http://localhost:9876
+**Dashboard Tabs**
 
-
-#### Dashboard Features
-
-| Tab | Features |
-|-----|----------|
-| **Main** | • Real-time mode indicator (IDLE/GAMING/CUSTOM)<br>• Current CPU governor<br>• Foreground application<br>• Device temperature monitoring<br>• Device & kernel information |
-| **Tuning** | • Governor configuration (idle/gaming)<br>• Game package manager<br>• Per-app governor settings<br>• Auto-detect installed games<br>• Instant apply changes |
-| **Log** | • Real-time log viewer<br>• Auto-refresh capability<br>• Clear display option<br>• Event tracking |
+| Tab | Description |
+|---------|-------------|
+| Main | Real-time mode indicator, active CPU governor, foreground app, temperature, and device information |
+| Tuning | Governor configuration, game package manager, per-app governor settings, auto-detect foreground app |
+| Log | Live log viewer with manual refresh and clear options |
 
 ---
 
-### 🖥️ CLI Reference
+## CLI Reference
 
 All commands are available globally after installation.
 
-#### Game Management
+**Game Management**
 
-Add game to list
+```
+# Add a game package
 adaptperf-add <package_name>
 
-Remove game from list
+# Remove a game package
 adaptperf-remove <package_name>
 
-List all registered games
+# List all registered games
 adaptperf-list
+```
 
-
-**Examples:**
+Example:
+```
 adaptperf-add com.garena.game.df
 adaptperf-remove com.proxima.dfm
+```
 
+**Governor Configuration**
 
-#### Governor Configuration
-
-Set gaming governor (applied when game is running)
+```
+# Set the gaming governor
 adaptperf-setgov <governor_name>
 
-View available governors
+# View governors supported by your kernel
 cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors
+```
 
-
-**Examples:**
+Example:
+```
 adaptperf-setgov schedutil
 adaptperf-setgov performance
+```
 
+**Per-App Governor**
 
-#### Per-App Governor
-
-Set custom governors for specific applications (non-games):
-
-Set custom governor for an app
+```
+# Assign a governor to a specific app
 adaptperf-setappgov <package_name> <governor_name>
 
-Remove custom governor
+# Remove per-app governor for an app
 adaptperf-delappgov <package_name>
 
-List all per-app configurations
+# List all per-app governor configs
 adaptperf-listappgov
+```
 
-
-**Examples:**
-Use conservative governor for Chrome
+Example:
+```
 adaptperf-setappgov com.android.chrome conservative
-
-Use ondemand for YouTube
 adaptperf-setappgov com.google.android.youtube ondemand
-
-Remove Chrome's custom governor
 adaptperf-delappgov com.android.chrome
+```
 
+Note: A package cannot exist in both the game list and per-app governor config simultaneously. Remove it from one list before adding to the other.
 
-> **⚠️ Important**: A package cannot exist in both game list AND per-app governor config. Remove from one before adding to another.
+**Status and Logs**
 
-#### Status & Monitoring
-
-View module status and recent log
+```
+# View module status and recent activity
 adaptperf-status
 
-View full log
+# View full log
 cat /data/local/tmp/adaptive_perf.log
 
-Monitor log in real-time
+# Monitor log in real time
 tail -f /data/local/tmp/adaptive_perf.log
-
+```
 
 ---
 
-## 🔧 Advanced Configuration
+## REST API
 
-### Configuration Files
+The module exposes a REST API on port **9877**.
 
-All configuration files are located in `/data/adb/modules/adaptive_performance/`:
+| Endpoint | Parameter(s) | Description |
+|----------|--------------|-------------|
+| `/?action=add` | `pkg` | Add game package |
+| `/?action=remove` | `pkg` | Remove game package |
+| `/?action=set_governor` | `governor` | Set gaming governor |
+| `/?action=set_app_governor` | `pkg`, `governor` | Set per-app governor |
+| `/?action=remove_app_governor` | `pkg` | Remove per-app governor |
+
+Example using curl:
+```
+curl "http://127.0.0.1:9877/?action=set_governor&governor=schedutil"
+curl "http://127.0.0.1:9877/?action=add&pkg=com.tencent.ig"
+```
+
+---
+
+## Configuration Files
+
+All configuration files are stored in `/data/adb/modules/adaptive_performance/`.
 
 | File | Purpose | Format |
 |------|---------|--------|
@@ -263,337 +255,163 @@ All configuration files are located in `/data/adb/modules/adaptive_performance/`
 | `app_governors.txt` | Per-app governor mappings | `package=governor` |
 | `governor_pref.txt` | Gaming governor preference | Single governor name |
 | `default_governor.txt` | Idle/stock governor | Single governor name |
-| `stock_configs/` | Kernel config backups | Directory with backup files |
+| `stock_configs/` | Kernel config backups | Directory |
 
-### Manual Configuration
+Manual edits to these files take effect immediately without a reboot.
 
-You can manually edit configuration files:
-
-Edit game list
-vi /data/adb/modules/adaptive_performance/game_packages.txt
-
-Edit per-app governors
-vi /data/adb/modules/adaptive_performance/app_governors.txt
-
-Format for app_governors.txt:
+Example format for `app_governors.txt`:
+```
 com.android.chrome=conservative
 com.google.android.youtube=ondemand
-
-After manual edits, changes apply immediately (no reboot needed).
-
----
-
-## 🌐 REST API
-
-The module exposes a REST API on port **9877** for automation and scripting.
-
-### Endpoints
-
-| Endpoint | Method | Parameters | Description |
-|----------|--------|------------|-------------|
-| `/?action=add` | GET | `pkg` | Add game package |
-| `/?action=remove` | GET | `pkg` | Remove game package |
-| `/?action=set_governor` | GET | `governor` | Set gaming governor |
-| `/?action=set_app_governor` | GET | `pkg`, `governor` | Set per-app governor |
-| `/?action=remove_app_governor` | GET | `pkg` | Remove per-app governor |
-| `/?action=detect_games` | GET | - | Auto-detect installed games |
-
-### API Examples
-
-**Using netcat (nc):**
-Add game
-echo "" | nc 127.0.0.1 9877 << EOF
-GET /?action=add&pkg=com.tencent.ig HTTP/1.1
-Host: 127.0.0.1
-Connection: close
-
-EOF
-
-
-**Using curl (if available):**
-curl "http://127.0.0.1:9877/?action=set_governor&governor=schedutil"
-
-
-**Package name encoding:**
-- Replace `.` with `%2E` in package names
-- Example: `com.android.chrome` → `com%2Eandroid%2Echrome`
+```
 
 ---
 
-## 🎯 How It Works
+## How It Works
 
-### Monitoring Loop
+The module runs a background service (`service.sh`) that monitors the foreground application every 1 second.
 
-The module runs a background service that:
+For each detected foreground app, it checks in this order:
+1. If the package is in the **game list** — apply the gaming governor
+2. If the package has a **per-app governor** config — apply that governor
+3. Otherwise — apply the idle (stock) governor
 
-1. **Detects** foreground app every 1 second
-2. **Checks** if app matches:
-   - Game list → Apply gaming governor
-   - Per-app config → Apply custom governor
-   - Neither → Apply idle governor
-3. **Applies** governor to all CPU cores
-4. **Logs** all state changes
+**Governor detection on idle:**
+- Mediatek: `sugov_ext` → `schedutil` → `walt` → `interactive` → `ondemand`
+- Snapdragon: `walt` → `schedutil` → `interactive` → `ondemand`
 
+**Governor detection for gaming:**
+- Mediatek: `schedhorizon` → `schedutil` → `performance`
+- Snapdragon: `schedutil` → `performance`
 
-### Governor Detection Logic
-
-**For Idle Mode (Default):**
-1. User-saved governor (if exists)
-2. Stock governor (detected at install)
-3. Auto-detect based on chipset:
-   - **Mediatek**: `sugov_ext` → `schedutil` → `walt` → `interactive` → `ondemand`
-   - **Snapdragon**: `walt` → `schedutil` → `interactive` → `ondemand`
-
-**For Gaming Mode:**
-1. User preference (from `governor_pref.txt`)
-2. Auto-detect optimal governor:
-   - **Mediatek**: `schedhorizon` → `schedutil` → `performance`
-   - **Snapdragon**: `schedutil` → `performance`
-
-### Backup & Restore
-
-Module automatically backs up:
-- ✅ Original governor name
-- ✅ CPU frequency limits (min/max)
-- ✅ Governor tunables (all parameters)
-
-Backups are stored in `stock_configs/` and restored when switching to idle mode.
+The module backs up the original governor name, CPU frequency limits, and governor tunables on install. These are fully restored when switching back to idle mode.
 
 ---
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
-### Module Not Starting After Reboot
-
-**Check log:**
+**Module not starting after reboot**
+```
 cat /data/local/tmp/adaptive_perf.log
-
-
-**Verify service:**
 ps | grep service.sh
 
+# Manual start for debugging
+su -c sh /data/adb/modules/adaptive_performance/service.sh
+```
 
-**Manual start (debug):**
-su
-sh /data/adb/modules/adaptive_performance/service.sh
-
-
-### Governor Not Changing
-
-**Check available governors:**
+**Governor not changing**
+- Verify the governor is supported by your kernel:
+```
 cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors
+```
+- Try a different governor: `adaptperf-setgov schedutil`
+- Some kernels restrict governor changes under thermal throttling
 
-
-**Possible causes:**
-- Selected governor not supported by kernel
-- Kernel doesn't allow governor changes
-- Thermal throttling override
-
-**Solution:**
-List what your kernel supports
-adaptperf-status
-
-Try a different governor
-adaptperf-setgov schedutil
-
-
-### Dashboard Not Accessible
-
-**Check HTTP server:**
+**Dashboard not accessible**
+```
 ps | grep httpd
 netstat -tuln | grep 9876
+```
+If the HTTP server is not running, reboot the device to restart the module service.
 
+**Per-app governor not applying**
 
-**Restart services:**
-Kill existing processes
-killall httpd nc
-
-Reboot to restart module
-reboot
-
-
-**Port forwarding (for PC access):**
-adb forward tcp:9876 tcp:9876
-adb forward tcp:9877 tcp:9877
-
-
-### Per-App Governor Not Applying
-
-**Check for conflicts:**
-List games
+Check for conflicts — a package must not be in both lists:
+```
 adaptperf-list
-
-List per-app governors
 adaptperf-listappgov
-
-
-**Ensure package is not in both lists:**
-Remove from game list if needed
+```
+If the package is in the game list, remove it first:
+```
 adaptperf-remove com.example.app
-
-Then set per-app governor
 adaptperf-setappgov com.example.app conservative
+```
 
+**Temperature not showing**
 
-**Monitor real-time:**
-tail -f /data/local/tmp/adaptive_perf.log
-
-
-### Temperature Reading Issues
-
-Some devices don't expose temperature via standard thermal zones. This is normal and doesn't affect governor switching functionality.
+Some devices do not expose temperature via standard thermal zones. This does not affect governor switching.
 
 ---
 
-## 🗑️ Uninstallation
+## Uninstallation
 
-### Via Magisk Manager / KernelSU
+**Via Magisk Manager or KernelSU**
 
-1. Open Magisk Manager / KernelSU
-2. Go to **Modules**
-3. Find **Adaptive Performance**
-4. Click **Remove**
-5. Reboot
+1. Open Magisk Manager or KernelSU
+2. Go to Modules
+3. Find Adaptive Performance and tap Remove
+4. Reboot
 
-### Manual Uninstall
-
+**Manual**
+```
 rm -rf /data/adb/modules/adaptive_performance
 reboot
+```
 
-
-### What Gets Cleaned
-
-The uninstall script automatically:
-- ✅ Stops all service processes (`httpd`, `nc`)
-- ✅ Removes runtime files and logs
-- ✅ Restores original CPU governor
-- ✅ Cleans up all configuration files
-- ✅ Removes module directory (Magisk handles this)
-
-> **Note**: User data in `/data/local/tmp/` is preserved unless manually deleted.
+The uninstall process automatically stops running services, restores the original CPU governor, and removes all configuration and log files.
 
 ---
 
-## 📊 Default Configuration
+## Changelog
 
-### Pre-configured Games
+### v1.2 (March 2026)
 
-The module includes these games by default:
+**Fixed**
+- Bottom navigation bar no longer pushed up when virtual keyboard opens
+- `visualViewport` reposition now uses `requestAnimationFrame` on first call to ensure correct height measurement after layout
+- Added fallback nav height (68px) to prevent incorrect positioning edge case
+- Device Info fields (Device, Kernel, CPU Cores, Chipset, Idle Governor) no longer blank on first open — retries every 3 seconds until `static.json` is ready
+- Version string corrected to 1.2 in `module.prop` and UI
 
-com.garena.game.df # Delta Force
-com.proxima.dfm # Delta Force Mobile
-com.mobile.legends # Mobile Legends
+**Improved**
+- Governor dropdown no longer resets during config polling when user is actively selecting a value
+- Package name input fields have autocomplete, autocorrect, and spellcheck disabled to prevent keyboard interference on Android
+- Config polling skips dropdown update when `govSelectDirty` flag is set
 
+**Changed**
+- Version code: 50 to 58
+- Bottom nav positioning: CSS `bottom: 0` replaced with JS `visualViewport`-locked `top` value
 
-### Default Ports
+### v1.1 (December 2025)
 
-- **HTTP Dashboard**: `9876`
-- **REST API**: `9877`
+**Added**
+- Per-app governor system
+- CLI commands: `adaptperf-setappgov`, `adaptperf-delappgov`, `adaptperf-listappgov`
+- Per-app governor tab in web dashboard
+- Conflict detection between game list and per-app config
+- New API endpoints: `set_app_governor`, `remove_app_governor`
+- Duplicate detection when adding games
 
-### Default Paths
+**Improved**
+- Dashboard shows three modes: IDLE / GAMING / CUSTOM
+- Faster app switching response (2s for per-app vs 3s for games)
+- More reliable config persistence
+- Enhanced log viewer
+- Governor detection for Mediatek and Snapdragon
 
-- **Module directory**: `/data/adb/modules/adaptive_performance/`
-- **Log file**: `/data/local/tmp/adaptive_perf.log`
-- **CLI commands**: `/system/bin/adaptperf-*`
-
----
-
-## 🛠️ Development & Contribution
-
-### Building from Source
-
-Clone repository
-git clone https://github.com/Steambot12/Adaptive-Performance.git
-cd Adaptive-Performance
-
-Create flashable ZIP
-zip -r9 AdaptivePerformance-v1.1.zip * -x ".git" ".md" ".zip"
-
-
-### Contributing
-
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
----
-
-## 📝 Changelog
-
-### v1.1 (Current - December 2025)
-
-**New Features:**
-- ✨ Per-app governor support
-- 🌐 Enhanced web dashboard
-- 🔍 Conflict detection and validation
-- 📊 Improved logging system
-- 🔧 Expanded REST API endpoints
-
-**Improvements:**
-- ⚡ Better governor detection logic
-- 🔄 Faster app switching response
-- 💾 More reliable config persistence
-- 📝 Comprehensive CLI help messages
-
-**Bug Fixes:**
-- 🐛 Fixed race condition in app detection
-- 🐛 Resolved thermal reading on some devices
-- 🐛 Corrected governor tunable restoration
+**Fixed**
+- Race condition in app detection loop
+- Governor not reverting to idle when removing an active per-app config
+- Memory leak in monitoring loop
+- Log file not created on first boot
+- HTTP server not binding on some ROMs
 
 ### v1.0 (Initial Release)
 
-- 🎮 Basic game detection
-- ⚙️ Automatic governor switching
-- 🖥️ CLI tools
-- 📊 Web dashboard (basic)
+- Basic game detection and automatic governor switching
+- CLI tools
+- Web dashboard (basic)
 
 ---
 
+## Support
 
-### Inspiration
-
-This project was inspired by:
-- Various kernel tweaker modules
-- Performance optimization discussions on Group POCO F5
-- Mobile gaming communities' need for adaptive performance
-
----
-
-## 📞 Support & Contact
-
-### Found a Bug?
-
-Open an issue on GitHub with:
-- Device model
-- Android version
+To report a bug, open an issue on [GitHub Issues](https://github.com/Steambot12/Adaptive-Performance/issues) and include:
+- Device model and Android version
 - Kernel name
-- Log file (`/data/local/tmp/adaptive_perf.log`)
-- Steps to reproduce
-
-### Feature Requests
-
-Open an issue with the `enhancement` label and describe:
-- What you want
-- Why it's useful
-- How it should work
-
-### Community
-
-- **GitHub Issues**: [Report bugs & request features](https://github.com/Steambot12/Adaptive-Performance/issues)
-- **Telegram**: *(Coming soon)*
+- Log file contents (`/data/local/tmp/adaptive_perf.log`)
+- Steps to reproduce the issue
 
 ---
 
-<div align="center">
-
-### 🌟 If you find this useful, consider starring the repo!
-
-**Made with ❤️ by Steambot12**
-
-[⬆ Back to Top](#-adaptive-performance)
-
-</div>
+Made by Steambot12
