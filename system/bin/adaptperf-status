@@ -1,19 +1,23 @@
 #!/system/bin/sh
 # Adaptive Performance - Status
 
-LOG=/data/local/tmp/adaptive_perf.log
+API_PORT=9877
+HTTP_PORT=9876
 
-if [ ! -f "$LOG" ]; then
-    echo "❌ Module not running"
-    exit 1
+echo "=== Adaptive Performance Status ==="
+
+# Governor info via API
+RESPONSE=$( (echo -e "GET /?action=get_status HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n"; sleep 1) | nc 127.0.0.1 $API_PORT 2>/dev/null )
+
+if echo "$RESPONSE" | grep -q '"status":"success"'; then
+  echo "Service  : RUNNING"
+  echo "$RESPONSE" | grep -o '"governor":"[^"]*"' | sed 's/"governor":"//;s/"//' | awk '{print "Governor : " $0}'
+  echo "$RESPONSE" | grep -o '"default":"[^"]*"' | sed 's/"default":"//;s/"//' | awk '{print "Default  : " $0}'
+  echo "$RESPONSE" | grep -o '"gaming":"[^"]*"' | sed 's/"gaming":"//;s/"//' | awk '{print "Gaming   : " $0}'
+else
+  echo "Service  : NOT RUNNING or not responding"
 fi
 
-echo "╔═══════════════════════════════════════════════════╗"
-echo "║  📊 ADAPTIVE PERFORMANCE STATUS                   ║"
-echo "╚═══════════════════════════════════════════════════╝"
-echo ""
-echo "🌐 Dashboard: http://127.0.0.1:9876"
-echo "📄 Log file: $LOG"
-echo ""
-echo "Recent log entries:"
-tail -20 "$LOG"
+echo "Dashboard: http://127.0.0.1:$HTTP_PORT"
+echo "Log      : /data/local/tmp/adaptive_perf.log"
+echo "==================================="

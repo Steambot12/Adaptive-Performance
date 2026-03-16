@@ -1,33 +1,23 @@
 #!/system/bin/sh
-# Adaptive Performance - List App Governors
+# Adaptive Performance - List Per-App Governors
 
-APP_GOVERNORS="/data/adb/modules/adaptive_performance/app_governors.txt"
+MODULE_DIR="/data/adb/modules/adaptive_performance"
+APP_GOV_FILE="$MODULE_DIR/app_governors.txt"
 
-if [ ! -f "$APP_GOVERNORS" ] || [ ! -s "$APP_GOVERNORS" ]; then
-    echo "ℹ️  No custom app governors configured"
-    exit 0
+if [ ! -f "$APP_GOV_FILE" ] || [ ! -s "$APP_GOV_FILE" ]; then
+  echo "No per-app governors configured."
+  exit 0
 fi
 
-echo "╔═══════════════════════════════════════════════════╗"
-echo "║  📱 CUSTOM APP GOVERNORS                          ║"
-echo "╚═══════════════════════════════════════════════════╝"
-echo ""
-
+echo "Per-app governor settings:"
+echo "-------------------------"
 count=0
 while IFS='=' read -r pkg gov; do
-    [ -z "$pkg" ] && continue
-    pkg=$(echo "$pkg" | tr -d '\r\n\t' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-    gov=$(echo "$gov" | tr -d '\r\n\t' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
-    [ -z "$pkg" ] || [ -z "$gov" ] && continue
-    
-    count=$((count + 1))
-    echo "[$count] $pkg"
-    echo "    └─ Governor: $gov"
-    echo ""
-done < "$APP_GOVERNORS"
-
-if [ $count -eq 0 ]; then
-    echo "ℹ️  No custom app governors configured"
-else
-    echo "Total: $count app(s)"
-fi
+  [ -z "$pkg" ] && continue
+  pkg=$(echo "$pkg" | tr -d '\r\n\t' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  gov=$(echo "$gov" | tr -d '\r\n\t' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  echo "  $pkg = $gov"
+  count=$((count + 1))
+done < "$APP_GOV_FILE"
+echo "-------------------------"
+echo "Total: $count entry"

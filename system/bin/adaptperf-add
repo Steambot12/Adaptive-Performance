@@ -1,55 +1,30 @@
 #!/system/bin/sh
-# Adaptive Performance - Add Game Package (with duplicate check)
+# Adaptive Performance - Add Game Package
 
 API_PORT=9877
-MODULE_DIR="/data/adb/modules/adaptive_performance"
-GAMES_FILE="$MODULE_DIR/game_packages.txt"
-APP_GOV_FILE="$MODULE_DIR/app_governors.txt"
 PKG="$1"
 
 [ -z "$PKG" ] && {
-    echo "❌ Usage: adaptperf-add <package>"
-    echo "Example: adaptperf-add com.garena.game.df"
-    exit 1
+  echo "Usage: adaptperf-add <package>"
+  echo "Example: adaptperf-add com.garena.game.df"
+  exit 1
 }
 
-echo "🔍 Checking for duplicates..."
+# Validate format
+echo "$PKG" | grep -Eq '^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)+$' || {
+  echo "ERROR: Invalid package format: $PKG"
+  exit 1
+}
 
-# VALIDATION #1: Check if already in game list
-if [ -f "$GAMES_FILE" ]; then
-    if grep -qx "$PKG" "$GAMES_FILE"; then
-        echo "❌ ERROR: Package already exists in game list!"
-        echo "Package: $PKG"
-        exit 1
-    fi
-fi
+PKG_ENCODED=$(echo "$PKG" | sed 's/\./%2E/g')
 
-# VALIDATION #2: Check if in per-app governor list
-if [ -f "$APP_GOV_FILE" ]; then
-    if grep -q "^$PKG:" "$APP_GOV_FILE"; then
-        echo "❌ ERROR: Package exists in per-app governor list!"
-        echo "Package: $PKG"
-        echo "Remove from per-app list first."
-        exit 1
-    fi
-fi
-
-echo "✅ Validation passed"
-echo "➕ Adding game package: $PKG"
-
-PKG_ENCODED=$(echo "$PKG" | sed 's/\./%2E/g; s/ /%20/g')
-
-RESPONSE=$(echo "" | nc 127.0.0.1 $API_PORT << EOF
-GET /?action=add&pkg=$PKG_ENCODED HTTP/1.1
-Host: 127.0.0.1
-Connection: close
-
-EOF
-)
+RESPONSE=$( (echo -e "GET /?action=add&pkg=$PKG_ENCODED HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n"; sleep 1) | nc 127.0.0.1 $API_PORT 2>/dev/null )
 
 if echo "$RESPONSE" | grep -q '"status":"success"'; then
-    echo "✅ Package added successfully"
+  echo "OK: Package added -> $PKG"
+elif echo "$RESPONSE" | grep -q 'duplicate'; then
+  echo "WARN: Package already exists -> $PKG"
 else
-    echo "❌ Failed to add package"
-    echo "$RESPONSE" | grep -o '{.*}'
+  echo "ERROR: Failed to add package -> $PKG"
+  echo "$RESPONSE" | grep -o '{.*}'
 fi

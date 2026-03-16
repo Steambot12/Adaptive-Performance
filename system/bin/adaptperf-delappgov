@@ -1,40 +1,22 @@
 #!/system/bin/sh
-# Adaptive Performance - Remove App Governor (API Version)
+# Adaptive Performance - Remove Per-App Governor
 
 API_PORT=9877
 PKG="$1"
 
 [ -z "$PKG" ] && {
-    echo "❌ Usage: adaptperf-delappgov <package>"
-    echo "Example: adaptperf-delappgov com.proxima.dfm"
-    exit 1
+  echo "Usage: adaptperf-delappgov <package>"
+  echo "Example: adaptperf-delappgov com.instagram.android"
+  exit 1
 }
 
-echo "🗑️  Removing custom governor for: $PKG"
-echo ""
+PKG_ENCODED=$(echo "$PKG" | sed 's/\./%2E/g')
 
-# Call API endpoint (sama dengan dashboard)
-RESPONSE=$(echo "" | nc 127.0.0.1 $API_PORT << EOF
-GET /?action=remove_app_governor&pkg=$PKG HTTP/1.1
-Host: 127.0.0.1
-Connection: close
+RESPONSE=$( (echo -e "GET /?action=remove_app_governor&pkg=$PKG_ENCODED HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n"; sleep 1) | nc 127.0.0.1 $API_PORT 2>/dev/null )
 
-EOF
-)
-
-# Parse response
 if echo "$RESPONSE" | grep -q '"status":"success"'; then
-    echo "╔═══════════════════════════════════════════════════╗"
-    echo "║  ✅ SUCCESS                                       ║"
-    echo "╚═══════════════════════════════════════════════════╝"
-    echo ""
-    echo "✓ Custom governor removed: $PKG"
-    echo "✓ Config reset to default"
-    echo ""
-    echo "💡 Check log: cat /data/local/tmp/adaptive_perf.log"
+  echo "OK: Per-app governor removed -> $PKG"
 else
-    echo "❌ Failed to remove app governor"
-    echo ""
-    echo "Response:"
-    echo "$RESPONSE" | grep -o '{.*}'
+  echo "ERROR: Failed to remove per-app governor"
+  echo "$RESPONSE" | grep -o '{.*}'
 fi
