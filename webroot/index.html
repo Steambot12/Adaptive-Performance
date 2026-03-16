@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>&#9889; Adaptive Performance</title>
     <style>
         :root {
@@ -19,7 +19,6 @@
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
             color: var(--on-surface);
             min-height: 100vh;
-            /* Fix #4: padding-bottom uses fixed nav height, NOT viewport-based */
             padding-bottom: var(--nav-height);
         }
         .glass-card {
@@ -89,9 +88,9 @@
             width: 100%; padding: 12px; border-radius: 12px;
             background: rgba(255,255,255,0.05);
             border: 1px solid rgba(255,255,255,0.1);
-            color: var(--on-surface); font-size: 14px; margin: 8px 0;
-            /* prevent zoom on iOS */
+            color: var(--on-surface);
             font-size: 16px;
+            margin: 8px 0;
         }
         select option { background: #1C1B1F; }
         .action-buttons { display: flex; gap: 8px; margin: 12px 0; flex-wrap: wrap; }
@@ -112,8 +111,7 @@
             font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.6;
         }
         .log-entry { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--on-surface-variant); }
-        /* Fix #4: bottom-nav uses position:fixed with transform:none so it stays anchored
-           and does NOT move when the virtual keyboard pushes the viewport up */
+        /* Bottom nav: fixed at bottom, JS will lock it via visualViewport */
         .bottom-nav {
             position: fixed;
             bottom: 0; left: 0; right: 0;
@@ -124,17 +122,14 @@
             border-top: 1px solid rgba(255,255,255,0.1);
             padding: 10px 0 16px;
             z-index: 1000;
-            /* Key fix: translate(0) creates a stacking context that prevents
-               WebView from repositioning this element when keyboard appears */
-            transform: translateZ(0);
-            -webkit-transform: translateZ(0);
-            will-change: transform;
         }
         .nav-item {
             display: flex; flex-direction: column; align-items: center; gap: 4px;
             cursor: pointer; padding: 8px 20px; border-radius: 16px;
-            transition: all 0.3s; color: var(--on-surface-variant);
+            transition: background 0.3s, color 0.3s;
+            color: var(--on-surface-variant);
             -webkit-tap-highlight-color: transparent;
+            user-select: none;
         }
         .nav-item.active { background: rgba(103,80,164,0.2); color: var(--primary); }
         .nav-icon { font-size: 22px; }
@@ -162,7 +157,7 @@
 
 <div class="header">
     <h1>&#9889; Adaptive Performance</h1>
-    <div class="subtitle">v1.2.1 &#8226; by Steambot12</div>
+    <div class="subtitle">v1.2 &#8226; by Steambot12</div>
 </div>
 
 <div id="toast"></div>
@@ -195,7 +190,6 @@
             <div class="info-item"><span class="info-label">Idle Governor</span><span class="info-value" id="idle-governor">--</span></div>
             <div class="info-item"><span class="info-label">Gaming Governor</span><span class="info-value" id="gaming-governor">--</span></div>
         </div>
-        <!-- Fix #1: governor dropdown is NOT overwritten by polling interval -->
         <select id="governor-select">
             <option value="">-- Select Gaming Governor --</option>
         </select>
@@ -217,7 +211,6 @@
     <div class="glass-card">
         <div class="section-header"><span>&#9672;</span> Per-App Governor <span class="badge" id="app-count">0</span></div>
         <input type="text" id="app-package-input" placeholder="com.example.app" autocomplete="off" autocorrect="off" spellcheck="false">
-        <!-- Fix #2: per-app governor select also NOT overwritten by polling -->
         <select id="app-governor-select"><option value="">-- Select Governor --</option></select>
         <button class="btn btn-primary" id="btn-add-app" style="width:100%;margin-top:8px">&#10004; Add App Governor</button>
         <div class="info-box">&#8505; Per-App governor cannot overlap with the game list.</div>
@@ -240,8 +233,7 @@
     </div>
 </div>
 
-<!-- Fix #4: Bottom nav uses translateZ(0) so keyboard does NOT push it up -->
-<div class="bottom-nav">
+<div class="bottom-nav" id="bottom-nav">
     <div class="nav-item active" data-tab="main"><div class="nav-icon">&#8962;</div><div class="nav-label">Main</div></div>
     <div class="nav-item" data-tab="tuning"><div class="nav-icon">&#9881;</div><div class="nav-label">Tuning</div></div>
     <div class="nav-item" data-tab="log"><div class="nav-icon">&#9776;</div><div class="nav-label">Log</div></div>
@@ -252,10 +244,34 @@
 
 var API_PORT = 9877;
 var toastTimer = null;
-// Fix #1/#2: track whether user is actively using a dropdown
-var govSelectDirty = false;  // true = user touched governor-select, don't overwrite
-var appSelectDirty = false;  // true = user touched app-governor-select, don't overwrite
-var govListLoaded = false;   // true = dropdown options already populated
+var govSelectDirty = false;
+var appSelectDirty = false;
+var govListLoaded = false;
+
+// =====================================================================
+// Fix #2: Lock bottom-nav to bottom of SCREEN using visualViewport.
+// When the virtual keyboard opens, the visual viewport shrinks and
+// offsetTop changes. We re-anchor the nav to window.innerHeight so it
+// never moves up with the keyboard.
+// =====================================================================
+(function lockNavToScreen() {
+    var nav = document.getElementById('bottom-nav');
+    function reposition() {
+        var vv = window.visualViewport;
+        if (vv) {
+            // Offset from top of layout viewport to bottom of visual viewport
+            nav.style.top = (vv.offsetTop + vv.height - nav.offsetHeight) + 'px';
+            nav.style.bottom = 'auto';
+            nav.style.left  = vv.offsetLeft + 'px';
+            nav.style.width = vv.width + 'px';
+        }
+    }
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', reposition);
+        window.visualViewport.addEventListener('scroll', reposition);
+        reposition();
+    }
+})();
 
 function escapeHtml(t) {
     var d = document.createElement('div');
@@ -273,7 +289,7 @@ function showToast(msg, ms) {
 }
 
 // =====================================================================
-// fetchJSON — relative path (stable like v1.1)
+// fetchJSON — relative path
 // =====================================================================
 function fetchJSON(filename, forceRefresh) {
     var ts = Date.now() + (forceRefresh ? (Math.random() * 1000 | 0) : 0);
@@ -337,12 +353,42 @@ function initTabs() {
             this.classList.add('active');
             if (tab === 'log') refreshLog();
             if (tab === 'tuning') {
-                // Only refresh labels & options, don't touch dropdown selection if user is editing
                 loadGovernorConfig(true);
                 refreshGameList();
                 refreshAppList();
             }
         });
+    });
+}
+
+// =====================================================================
+// Fix #1: updateDeviceInfo with retry — static.json may not be ready
+// immediately on first load, so we retry every 3s until data arrives.
+// =====================================================================
+var deviceInfoLoaded = false;
+function updateDeviceInfo() {
+    if (deviceInfoLoaded) return;
+    fetchJSON('static.json', true).then(function(data) {
+        if (!data) {
+            setTimeout(updateDeviceInfo, 3000);
+            return;
+        }
+        var device = data.device || '';
+        var kernel = data.kernel || '';
+        var cores  = data.cores  || '';
+        var chipset = data.chipset || '';
+        var defGov  = data.default_governor || '';
+        // If all fields empty, retry (service.sh may still be starting)
+        if (!device && !kernel && !cores) {
+            setTimeout(updateDeviceInfo, 3000);
+            return;
+        }
+        document.getElementById('device').textContent      = device  || '--';
+        document.getElementById('kernel').textContent      = kernel  || '--';
+        document.getElementById('cpu-cores').textContent   = cores   || '--';
+        document.getElementById('chipset').textContent     = chipset || '--';
+        document.getElementById('idle-gov-main').textContent = defGov || '--';
+        deviceInfoLoaded = true;
     });
 }
 
@@ -368,86 +414,52 @@ function updateStatus() {
         var temp = parseInt(data.temperature) || 0;
         document.getElementById('temperature').textContent =
             (temp > 1000 && temp < 200000) ? (temp / 1000).toFixed(1) + '\u00b0C' : '--';
-    });
-}
-
-function updateDeviceInfo() {
-    fetchJSON('static.json').then(function(data) {
-        if (!data) return;
-        document.getElementById('device').textContent = data.device || '--';
-        document.getElementById('kernel').textContent = data.kernel || '--';
-        document.getElementById('cpu-cores').textContent = data.cores || '--';
-        document.getElementById('chipset').textContent = data.chipset || '--';
-        document.getElementById('idle-gov-main').textContent = data.default_governor || '--';
+        // Retry device info if not yet loaded
+        if (!deviceInfoLoaded) updateDeviceInfo();
     });
 }
 
 // =====================================================================
-// Fix #1: loadGovernorConfig separates two concerns:
-//   a) Always update the label text (idle-governor, gaming-governor)
-//   b) Only populate dropdown OPTIONS once (govListLoaded flag)
-//   c) Never overwrite dropdown VALUE if user has touched it (govSelectDirty)
+// Governor config — only populate options once, never overwrite user selection
 // =====================================================================
 function loadGovernorConfig(forceRefresh) {
     fetchJSON('config.json', forceRefresh).then(function(data) {
         if (!data) return;
-
-        // Always update display labels
-        document.getElementById('idle-governor').textContent = data.default_idle || '--';
+        document.getElementById('idle-governor').textContent   = data.default_idle    || '--';
         document.getElementById('gaming-governor').textContent = data.gaming_governor || '--';
 
         var mainSel = document.getElementById('governor-select');
         var appSel  = document.getElementById('app-governor-select');
 
-        // Populate options only once (or if list was empty)
         if (!govListLoaded && data.available_governors && data.available_governors.length > 0) {
             var savedMain = mainSel.value;
             var savedApp  = appSel.value;
-
             mainSel.innerHTML = '<option value="">-- Select Gaming Governor --</option>';
             appSel.innerHTML  = '<option value="">-- Select Governor --</option>';
-
             data.available_governors.forEach(function(g) {
                 mainSel.add(new Option(g, g));
                 appSel.add(new Option(g, g));
             });
-
             govListLoaded = true;
-
-            // Only set dropdown value if user hasn't touched it yet
-            if (!govSelectDirty) {
-                mainSel.value = data.gaming_governor || savedMain;
-            }
-            if (!appSelectDirty) {
-                appSel.value = savedApp;
-            }
-        } else if (govListLoaded) {
-            // Options already loaded — only sync governor label, never touch .value
-            // This prevents the reset-to-schedutil bug on polling interval
+            if (!govSelectDirty) mainSel.value = data.gaming_governor || savedMain;
+            if (!appSelectDirty)  appSel.value  = savedApp;
         }
     });
 }
 
-// =====================================================================
-// Fix #1: Apply governor via button — dirty flag cleared after success
-// =====================================================================
 function initGovernorBtn() {
     var sel = document.getElementById('governor-select');
-
-    // Mark dirty when user opens the dropdown
-    sel.addEventListener('focus', function() { govSelectDirty = true; });
-    sel.addEventListener('mousedown', function() { govSelectDirty = true; });
+    sel.addEventListener('focus',      function() { govSelectDirty = true; });
+    sel.addEventListener('mousedown',  function() { govSelectDirty = true; });
     sel.addEventListener('touchstart', function() { govSelectDirty = true; }, { passive: true });
 
     document.getElementById('btn-set-gov').addEventListener('click', function() {
         var gov = sel.value;
         if (!gov) { showToast('\u274c Please select a governor first'); return; }
-
         var btn = this;
         btn.disabled = true;
         btn.textContent = '\u23f3 Applying...';
         showToast('\u23f3 Setting governor: ' + gov);
-
         apiCall('set_governor', { governor: gov }, 2).then(function() {
             var tries = 0;
             function poll() {
@@ -456,14 +468,14 @@ function initGovernorBtn() {
                         if (d && d.gaming_governor === gov) {
                             document.getElementById('gaming-governor').textContent = gov;
                             showToast('\u2705 Gaming governor set: ' + gov);
-                            govSelectDirty = false; // reset — polling can sync label again
+                            govSelectDirty = false;
                             btn.disabled = false;
                             btn.textContent = '\u2714 Apply Governor';
                         } else if (++tries < 8) {
                             poll();
                         } else {
                             document.getElementById('gaming-governor').textContent = gov;
-                            showToast('\u2705 Applied (check log to verify)');
+                            showToast('\u2705 Applied (verify in log)');
                             govSelectDirty = false;
                             btn.disabled = false;
                             btn.textContent = '\u2714 Apply Governor';
@@ -476,13 +488,10 @@ function initGovernorBtn() {
     });
 }
 
-// =====================================================================
-// Fix #2: per-app select dirty flag
-// =====================================================================
 function initAppSelect() {
     var appSel = document.getElementById('app-governor-select');
-    appSel.addEventListener('focus', function() { appSelectDirty = true; });
-    appSel.addEventListener('mousedown', function() { appSelectDirty = true; });
+    appSel.addEventListener('focus',      function() { appSelectDirty = true; });
+    appSel.addEventListener('mousedown',  function() { appSelectDirty = true; });
     appSel.addEventListener('touchstart', function() { appSelectDirty = true; }, { passive: true });
 }
 
@@ -711,12 +720,17 @@ function initialize() {
     // Status polling every 2s
     setInterval(updateStatus, 2000);
 
-    // Config label polling every 5s — ONLY updates labels, NOT dropdown values (dirty flag guards this)
+    // Config label polling every 5s (no dropdown value overwrite)
     setInterval(function() {
         if (!govSelectDirty) loadGovernorConfig(false);
     }, 5000);
 
-    // Log auto-refresh when log tab is active
+    // Device info retry polling every 5s until loaded
+    setInterval(function() {
+        if (!deviceInfoLoaded) updateDeviceInfo();
+    }, 5000);
+
+    // Log auto-refresh when log tab active
     setInterval(function() {
         if (document.getElementById('tab-log').classList.contains('active')) refreshLog();
     }, 5000);
