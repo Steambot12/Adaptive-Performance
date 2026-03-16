@@ -1,5 +1,5 @@
 #!/system/bin/sh
-# Adaptive Performance v1.2 - Stable
+# Adaptive Performance v1.2.1
 
 MODDIR=${0%/*}
 
@@ -45,7 +45,7 @@ while [ "$(getprop sys.boot_completed)" != "1" ]; do
 done
 
 log "================================================"
-log "Adaptive Performance v1.2 - Stable"
+log "Adaptive Performance v1.2.1"
 log "================================================"
 
 mkdir -p "$WEBROOT" 2>/dev/null
@@ -478,7 +478,7 @@ generate_dynamic_json() {
 }
 
 # ============================================================
-# THERMAL PROTECTION (v1.2 new)
+# THERMAL PROTECTION
 # ============================================================
 check_thermal() {
   local temp=$(get_temperature)
@@ -536,7 +536,7 @@ apply_app_governor() {
 }
 
 # ============================================================
-# HTTP SERVER (busybox httpd)
+# HTTP SERVER
 # ============================================================
 start_http_server() {
   killall httpd 2>/dev/null
@@ -553,14 +553,12 @@ start_http_server() {
 
 # ============================================================
 # API SERVER
-# Menggunakan pola dua-nc yang sama persis seperti v1.1 (terbukti stabil):
-#   nc pertama  -> terima & baca request
-#   nc kedua    -> kirim response (background, non-blocking)
+# Fix #3: Only log when ACTION is non-empty (real request).
+# Idle nc connections (browser preflight/empty) are silently ignored.
 # ============================================================
 start_api_server() {
   log "API server started :$API_PORT"
   while true; do
-    # Step 1: Terima satu koneksi, baca request (max 10 baris)
     REQUEST=$(echo "" | nc -l -p $API_PORT 2>/dev/null | head -10)
     GET_LINE=$(echo "$REQUEST" | head -1)
     QUERY=$(echo "$GET_LINE" | grep -oE '\?[^ ]+' | cut -c2-)
@@ -579,6 +577,12 @@ start_api_server() {
           governor) GOVERNOR="$VAL" ;;
         esac
       done
+    fi
+
+    # Skip empty/non-action requests silently (no log spam)
+    if [ -z "$ACTION" ]; then
+      sleep 0.1
+      continue
     fi
 
     RESPONSE=""
@@ -628,9 +632,9 @@ start_api_server() {
         ;;
     esac
 
-    log "API $ACTION pkg=$PKG gov=$GOVERNOR"
+    # Only log real actions
+    log "API: action=$ACTION pkg=$PKG gov=$GOVERNOR"
 
-    # Step 2: Kirim response via nc baru (background, -w 1 agar tidak hang)
     printf 'HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: %d\r\nAccess-Control-Allow-Origin: *\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n%s' \
       "${#RESPONSE}" "$RESPONSE" | nc -l -p $API_PORT -w 1 >/dev/null 2>&1 &
 
@@ -660,7 +664,6 @@ monitor_loop() {
       game_counter=0; idle_counter=0; app_counter=0
     fi
 
-    # Thermal check (v1.2)
     if ! check_thermal; then
       current_state="thermal_throttle"
       last_applied_governor=""
@@ -668,7 +671,6 @@ monitor_loop() {
       sleep 2; continue
     fi
 
-    # Reload gaming governor dari file
     local fg_gov=$(cat "$GOVERNOR_PREF" 2>/dev/null | head -1 | tr -d ' \r\n\t')
     [ -n "$fg_gov" ] && echo "$AVAILABLE_GOVERNORS" | grep -q "$fg_gov" && GAMING_GOVERNOR="$fg_gov"
 
@@ -743,7 +745,7 @@ start_http_server
 sleep 2
 start_api_server &
 
-log "=== MODULE READY v1.2 ==="
+log "=== MODULE READY v1.2.1 ==="
 log "Dashboard : http://127.0.0.1:$HTTP_PORT"
 log "API Server: http://127.0.0.1:$API_PORT"
 log "================================================"

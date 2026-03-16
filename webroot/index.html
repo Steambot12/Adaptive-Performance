@@ -2,19 +2,16 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
     <title>&#9889; Adaptive Performance</title>
     <style>
         :root {
             --primary: #6750A4;
-            --primary-container: #EADDFF;
             --on-primary: #FFFFFF;
-            --secondary: #625B71;
-            --surface: #1C1B1F;
             --on-surface: #E6E1E5;
             --on-surface-variant: #CAC4CF;
             --error: #F2B8B5;
-            --success: #A8E6A3;
+            --nav-height: 68px;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -22,7 +19,8 @@
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
             color: var(--on-surface);
             min-height: 100vh;
-            padding-bottom: 80px;
+            /* Fix #4: padding-bottom uses fixed nav height, NOT viewport-based */
+            padding-bottom: var(--nav-height);
         }
         .glass-card {
             background: rgba(255,255,255,0.05);
@@ -47,10 +45,7 @@
         .tab-content { display: none; animation: fadeIn 0.3s ease; }
         .tab-content.active { display: block; }
         @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
-        .status-grid {
-            display: grid; grid-template-columns: repeat(2, 1fr);
-            gap: 12px; margin: 16px;
-        }
+        .status-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 16px; }
         .status-item {
             background: rgba(255,255,255,0.05);
             border: 1px solid rgba(255,255,255,0.1);
@@ -68,23 +63,19 @@
         }
         .info-label { font-size: 14px; color: var(--on-surface-variant); }
         .info-value { font-size: 14px; font-weight: 500; }
-        .section-header {
-            display: flex; align-items: center; gap: 8px;
-            margin-bottom: 16px; font-size: 18px; font-weight: 500;
-        }
+        .section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 18px; font-weight: 500; }
         .badge {
             display: inline-block; padding: 4px 12px; border-radius: 12px;
-            font-size: 12px; font-weight: 500; background: rgba(103,80,164,0.3);
-            margin-left: auto;
+            font-size: 12px; font-weight: 500; background: rgba(103,80,164,0.3); margin-left: auto;
         }
         .btn {
             padding: 12px 24px; border: none; border-radius: 12px;
-            font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.3s ease;
+            font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.3s;
             background: rgba(103,80,164,0.3); color: var(--on-surface);
             border: 1px solid rgba(255,255,255,0.1);
         }
         .btn:hover:not(:disabled) { background: rgba(103,80,164,0.5); transform: translateY(-2px); }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
         .btn-primary { background: var(--primary); color: var(--on-primary); border: none; }
         .btn-primary:hover:not(:disabled) { background: #7965af; }
         .btn-small { padding: 8px 16px; font-size: 12px; }
@@ -99,6 +90,8 @@
             background: rgba(255,255,255,0.05);
             border: 1px solid rgba(255,255,255,0.1);
             color: var(--on-surface); font-size: 14px; margin: 8px 0;
+            /* prevent zoom on iOS */
+            font-size: 16px;
         }
         select option { background: #1C1B1F; }
         .action-buttons { display: flex; gap: 8px; margin: 12px 0; flex-wrap: wrap; }
@@ -119,21 +112,33 @@
             font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.6;
         }
         .log-entry { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--on-surface-variant); }
+        /* Fix #4: bottom-nav uses position:fixed with transform:none so it stays anchored
+           and does NOT move when the virtual keyboard pushes the viewport up */
         .bottom-nav {
-            position: fixed; bottom: 0; left: 0; right: 0;
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
             display: flex; justify-content: space-around;
-            background: rgba(28,27,31,0.97); backdrop-filter: blur(20px);
+            background: rgba(28,27,31,0.97);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
             border-top: 1px solid rgba(255,255,255,0.1);
-            padding: 12px 0 20px; z-index: 1000;
+            padding: 10px 0 16px;
+            z-index: 1000;
+            /* Key fix: translate(0) creates a stacking context that prevents
+               WebView from repositioning this element when keyboard appears */
+            transform: translateZ(0);
+            -webkit-transform: translateZ(0);
+            will-change: transform;
         }
         .nav-item {
             display: flex; flex-direction: column; align-items: center; gap: 4px;
             cursor: pointer; padding: 8px 20px; border-radius: 16px;
             transition: all 0.3s; color: var(--on-surface-variant);
+            -webkit-tap-highlight-color: transparent;
         }
         .nav-item.active { background: rgba(103,80,164,0.2); color: var(--primary); }
-        .nav-icon { font-size: 24px; }
-        .nav-label { font-size: 12px; font-weight: 500; }
+        .nav-icon { font-size: 22px; }
+        .nav-label { font-size: 11px; font-weight: 500; }
         .info-box {
             background: rgba(103,80,164,0.1); border: 1px solid rgba(103,80,164,0.3);
             border-radius: 12px; padding: 12px; margin: 12px 0;
@@ -141,14 +146,15 @@
         }
         .empty-state { text-align: center; padding: 40px 20px; color: var(--on-surface-variant); }
         #toast {
-            position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+            position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
             background: rgba(28,28,40,0.97); color: #fff;
-            padding: 10px 20px; border-radius: 22px; font-size: 13px;
+            padding: 10px 22px; border-radius: 22px; font-size: 13px;
             z-index: 9999; box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-            opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap;
+            opacity: 0; transition: opacity 0.3s; pointer-events: none;
+            white-space: nowrap; max-width: 90vw; overflow: hidden; text-overflow: ellipsis;
         }
         #toast.show { opacity: 1; }
-        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-thumb { background: rgba(103,80,164,0.5); border-radius: 4px; }
     </style>
 </head>
@@ -156,7 +162,7 @@
 
 <div class="header">
     <h1>&#9889; Adaptive Performance</h1>
-    <div class="subtitle">v1.2 &#8226; by Steambot12</div>
+    <div class="subtitle">v1.2.1 &#8226; by Steambot12</div>
 </div>
 
 <div id="toast"></div>
@@ -189,11 +195,12 @@
             <div class="info-item"><span class="info-label">Idle Governor</span><span class="info-value" id="idle-governor">--</span></div>
             <div class="info-item"><span class="info-label">Gaming Governor</span><span class="info-value" id="gaming-governor">--</span></div>
         </div>
+        <!-- Fix #1: governor dropdown is NOT overwritten by polling interval -->
         <select id="governor-select">
             <option value="">-- Select Gaming Governor --</option>
         </select>
         <button class="btn btn-primary" id="btn-set-gov" style="width:100%;margin-top:8px">&#10004; Apply Governor</button>
-        <div class="info-box">&#8505; Perubahan akan diterapkan langsung jika game sedang aktif.</div>
+        <div class="info-box">&#8505; Changes are applied immediately if a game is currently active.</div>
     </div>
 
     <div class="glass-card">
@@ -202,21 +209,22 @@
             <button class="btn btn-small" id="btn-detect">&#8981; Detect App</button>
             <button class="btn btn-small" id="btn-refresh-games">&#8635; Refresh</button>
         </div>
-        <input type="text" id="game-package-input" placeholder="com.example.game">
+        <input type="text" id="game-package-input" placeholder="com.example.game" autocomplete="off" autocorrect="off" spellcheck="false">
         <button class="btn btn-primary" id="btn-add-game" style="width:100%;margin-top:8px">+ Add Game</button>
         <div id="game-list" class="game-list"><div class="empty-state">Loading...</div></div>
     </div>
 
     <div class="glass-card">
         <div class="section-header"><span>&#9672;</span> Per-App Governor <span class="badge" id="app-count">0</span></div>
-        <input type="text" id="app-package-input" placeholder="com.example.app">
+        <input type="text" id="app-package-input" placeholder="com.example.app" autocomplete="off" autocorrect="off" spellcheck="false">
+        <!-- Fix #2: per-app governor select also NOT overwritten by polling -->
         <select id="app-governor-select"><option value="">-- Select Governor --</option></select>
         <button class="btn btn-primary" id="btn-add-app" style="width:100%;margin-top:8px">&#10004; Add App Governor</button>
-        <div class="info-box">&#8505; Per-App tidak bisa overlap dengan daftar game.</div>
+        <div class="info-box">&#8505; Per-App governor cannot overlap with the game list.</div>
         <div class="action-buttons" style="margin-top:12px">
-            <button class="btn btn-small" id="btn-refresh-apps">&#8635; Refresh App List</button>
+            <button class="btn btn-small" id="btn-refresh-apps">&#8635; Refresh List</button>
         </div>
-        <div id="app-list" class="app-list"><div class="empty-state">Belum ada custom governor</div></div>
+        <div id="app-list" class="app-list"><div class="empty-state">No custom governors configured</div></div>
     </div>
 </div>
 
@@ -232,7 +240,7 @@
     </div>
 </div>
 
-<!-- Bottom Nav -->
+<!-- Fix #4: Bottom nav uses translateZ(0) so keyboard does NOT push it up -->
 <div class="bottom-nav">
     <div class="nav-item active" data-tab="main"><div class="nav-icon">&#8962;</div><div class="nav-label">Main</div></div>
     <div class="nav-item" data-tab="tuning"><div class="nav-icon">&#9881;</div><div class="nav-label">Tuning</div></div>
@@ -243,12 +251,15 @@
 'use strict';
 
 var API_PORT = 9877;
-var lastGovernorChangeTime = 0;
 var toastTimer = null;
+// Fix #1/#2: track whether user is actively using a dropdown
+var govSelectDirty = false;  // true = user touched governor-select, don't overwrite
+var appSelectDirty = false;  // true = user touched app-governor-select, don't overwrite
+var govListLoaded = false;   // true = dropdown options already populated
 
-function escapeHtml(text) {
+function escapeHtml(t) {
     var d = document.createElement('div');
-    d.textContent = text;
+    d.textContent = t;
     return d.innerHTML;
 }
 
@@ -262,65 +273,52 @@ function showToast(msg, ms) {
 }
 
 // =====================================================================
-// fetchJSON: pakai relative path (sama seperti v1.1 yang terbukti stabil)
-// httpd di port 9876 serve file ini, jadi relative path selalu berhasil
+// fetchJSON — relative path (stable like v1.1)
 // =====================================================================
 function fetchJSON(filename, forceRefresh) {
-    var ts = Date.now() + (forceRefresh ? Math.random() * 1000 : 0);
+    var ts = Date.now() + (forceRefresh ? (Math.random() * 1000 | 0) : 0);
     return new Promise(function(resolve) {
         var xhr = new XMLHttpRequest();
         xhr.open('GET', '/' + filename + '?_=' + ts, true);
         if (forceRefresh) {
-            xhr.setRequestHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-            xhr.setRequestHeader('Pragma', 'no-cache');
+            try {
+                xhr.setRequestHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+                xhr.setRequestHeader('Pragma', 'no-cache');
+            } catch(e) {}
         }
         xhr.timeout = 5000;
         xhr.onload = function() {
             if (xhr.status >= 200 && xhr.status < 300) {
                 try { resolve(JSON.parse(xhr.responseText)); }
-                catch(e) { console.warn('JSON parse error:', filename, e); resolve(null); }
-            } else {
-                console.warn('HTTP error:', xhr.status, filename);
-                resolve(null);
-            }
+                catch(e) { resolve(null); }
+            } else { resolve(null); }
         };
-        xhr.onerror = function() { console.warn('Network error:', filename); resolve(null); };
-        xhr.ontimeout = function() { console.warn('Timeout:', filename); resolve(null); };
+        xhr.onerror = function() { resolve(null); };
+        xhr.ontimeout = function() { resolve(null); };
         xhr.send();
     });
 }
 
 // =====================================================================
-// apiCall: kirim ke API server port 9877 (no-cors via fetch, sama seperti v1.1)
-// Tidak perlu baca response body karena pola v1.1 terbukti berhasil
+// apiCall — no-cors fetch to port 9877
 // =====================================================================
 function apiCall(action, params, retries) {
     params = params || {};
-    retries = (retries !== undefined) ? retries : 2;
+    retries = retries !== undefined ? retries : 2;
     return new Promise(function(resolve) {
         var qs = 'action=' + encodeURIComponent(action);
-        var keys = Object.keys(params);
-        for (var i = 0; i < keys.length; i++) {
-            qs += '&' + encodeURIComponent(keys[i]) + '=' + encodeURIComponent(params[keys[i]]);
-        }
+        Object.keys(params).forEach(function(k) {
+            qs += '&' + encodeURIComponent(k) + '=' + encodeURIComponent(params[k]);
+        });
         qs += '&_t=' + Date.now();
         var url = 'http://127.0.0.1:' + API_PORT + '/?' + qs;
-
         function attempt(n) {
-            fetch(url, {
-                method: 'GET',
-                mode: 'no-cors',
-                cache: 'no-cache'
-            }).then(function() {
-                resolve({ status: 'success' });
-            }).catch(function(err) {
-                if (n > 0) {
-                    setTimeout(function() { attempt(n - 1); }, 400);
-                } else {
-                    console.warn('API error:', action, err);
-                    resolve({ status: 'error', message: err.message });
-                }
-            });
+            fetch(url, { method: 'GET', mode: 'no-cors', cache: 'no-cache' })
+                .then(function() { resolve({ status: 'success' }); })
+                .catch(function(err) {
+                    if (n > 0) setTimeout(function() { attempt(n - 1); }, 400);
+                    else resolve({ status: 'error', message: err.message });
+                });
         }
         attempt(retries);
     });
@@ -339,7 +337,8 @@ function initTabs() {
             this.classList.add('active');
             if (tab === 'log') refreshLog();
             if (tab === 'tuning') {
-                updateGovernorSettings(true);
+                // Only refresh labels & options, don't touch dropdown selection if user is editing
+                loadGovernorConfig(true);
                 refreshGameList();
                 refreshAppList();
             }
@@ -348,10 +347,10 @@ function initTabs() {
 }
 
 // =====================================================================
-// STATUS UPDATE
+// STATUS
 // =====================================================================
-function updateStatus(forceRefresh) {
-    fetchJSON('dynamic.json', forceRefresh).then(function(data) {
+function updateStatus() {
+    fetchJSON('dynamic.json').then(function(data) {
         if (!data) return;
         var state = data.state || 'idle';
         var modeEl = document.getElementById('mode');
@@ -364,7 +363,7 @@ function updateStatus(forceRefresh) {
             fgEl.textContent = fg.length > 25 ? fg.substring(0, 22) + '...' : fg;
             fgEl.title = fg;
         } else {
-            fgEl.textContent = 'No app';
+            fgEl.textContent = 'None';
         }
         var temp = parseInt(data.temperature) || 0;
         document.getElementById('temperature').textContent =
@@ -384,37 +383,65 @@ function updateDeviceInfo() {
 }
 
 // =====================================================================
-// GOVERNOR SETTINGS
+// Fix #1: loadGovernorConfig separates two concerns:
+//   a) Always update the label text (idle-governor, gaming-governor)
+//   b) Only populate dropdown OPTIONS once (govListLoaded flag)
+//   c) Never overwrite dropdown VALUE if user has touched it (govSelectDirty)
 // =====================================================================
-function updateGovernorSettings(forceRefresh) {
+function loadGovernorConfig(forceRefresh) {
     fetchJSON('config.json', forceRefresh).then(function(data) {
-        if (!data) {
-            showToast('\u26a0 Gagal baca config - coba refresh');
-            return;
-        }
+        if (!data) return;
+
+        // Always update display labels
         document.getElementById('idle-governor').textContent = data.default_idle || '--';
         document.getElementById('gaming-governor').textContent = data.gaming_governor || '--';
 
         var mainSel = document.getElementById('governor-select');
-        var appSel = document.getElementById('app-governor-select');
-        var prevVal = mainSel.value;
+        var appSel  = document.getElementById('app-governor-select');
 
-        if (data.available_governors && data.available_governors.length > 0) {
+        // Populate options only once (or if list was empty)
+        if (!govListLoaded && data.available_governors && data.available_governors.length > 0) {
+            var savedMain = mainSel.value;
+            var savedApp  = appSel.value;
+
             mainSel.innerHTML = '<option value="">-- Select Gaming Governor --</option>';
-            appSel.innerHTML = '<option value="">-- Select Governor --</option>';
+            appSel.innerHTML  = '<option value="">-- Select Governor --</option>';
+
             data.available_governors.forEach(function(g) {
                 mainSel.add(new Option(g, g));
                 appSel.add(new Option(g, g));
             });
-            mainSel.value = data.gaming_governor || prevVal;
+
+            govListLoaded = true;
+
+            // Only set dropdown value if user hasn't touched it yet
+            if (!govSelectDirty) {
+                mainSel.value = data.gaming_governor || savedMain;
+            }
+            if (!appSelectDirty) {
+                appSel.value = savedApp;
+            }
+        } else if (govListLoaded) {
+            // Options already loaded — only sync governor label, never touch .value
+            // This prevents the reset-to-schedutil bug on polling interval
         }
     });
 }
 
+// =====================================================================
+// Fix #1: Apply governor via button — dirty flag cleared after success
+// =====================================================================
 function initGovernorBtn() {
+    var sel = document.getElementById('governor-select');
+
+    // Mark dirty when user opens the dropdown
+    sel.addEventListener('focus', function() { govSelectDirty = true; });
+    sel.addEventListener('mousedown', function() { govSelectDirty = true; });
+    sel.addEventListener('touchstart', function() { govSelectDirty = true; }, { passive: true });
+
     document.getElementById('btn-set-gov').addEventListener('click', function() {
-        var gov = document.getElementById('governor-select').value;
-        if (!gov) { showToast('\u274c Pilih governor terlebih dahulu'); return; }
+        var gov = sel.value;
+        if (!gov) { showToast('\u274c Please select a governor first'); return; }
 
         var btn = this;
         btn.disabled = true;
@@ -422,33 +449,41 @@ function initGovernorBtn() {
         showToast('\u23f3 Setting governor: ' + gov);
 
         apiCall('set_governor', { governor: gov }, 2).then(function() {
-            lastGovernorChangeTime = Date.now();
-
-            // Cek config.json sampai gaming_governor berubah (poll 6x, 800ms jeda)
             var tries = 0;
             function poll() {
                 setTimeout(function() {
                     fetchJSON('config.json', true).then(function(d) {
                         if (d && d.gaming_governor === gov) {
                             document.getElementById('gaming-governor').textContent = gov;
-                            showToast('\u2705 Gaming governor: ' + gov);
+                            showToast('\u2705 Gaming governor set: ' + gov);
+                            govSelectDirty = false; // reset — polling can sync label again
                             btn.disabled = false;
                             btn.textContent = '\u2714 Apply Governor';
-                        } else if (++tries < 6) {
+                        } else if (++tries < 8) {
                             poll();
                         } else {
-                            // Timeout - tetap update display
                             document.getElementById('gaming-governor').textContent = gov;
-                            showToast('\u2705 Applied (verify in log)');
+                            showToast('\u2705 Applied (check log to verify)');
+                            govSelectDirty = false;
                             btn.disabled = false;
                             btn.textContent = '\u2714 Apply Governor';
                         }
                     });
-                }, 800);
+                }, 700);
             }
             poll();
         });
     });
+}
+
+// =====================================================================
+// Fix #2: per-app select dirty flag
+// =====================================================================
+function initAppSelect() {
+    var appSel = document.getElementById('app-governor-select');
+    appSel.addEventListener('focus', function() { appSelectDirty = true; });
+    appSel.addEventListener('mousedown', function() { appSelectDirty = true; });
+    appSel.addEventListener('touchstart', function() { appSelectDirty = true; }, { passive: true });
 }
 
 // =====================================================================
@@ -457,7 +492,7 @@ function initGovernorBtn() {
 function refreshGameList() {
     fetchJSON('games.json').then(function(data) {
         var list = document.getElementById('game-list');
-        if (!data) { list.innerHTML = '<div class="empty-state">&#9888; Load error</div>'; return; }
+        if (!data) { list.innerHTML = '<div class="empty-state">&#9888; Failed to load</div>'; return; }
         document.getElementById('game-count').textContent = data.count || 0;
         if (data.games && data.games.length > 0) {
             list.innerHTML = '';
@@ -470,13 +505,13 @@ function refreshGameList() {
                 var btn = document.createElement('button');
                 btn.className = 'btn btn-small btn-remove';
                 btn.textContent = '\u00d7 Remove';
-                btn.onclick = function() { removeGame(pkg, btn); };
+                (function(p, b) { b.onclick = function() { removeGame(p, b); }; })(pkg, btn);
                 item.appendChild(name);
                 item.appendChild(btn);
                 list.appendChild(item);
             });
         } else {
-            list.innerHTML = '<div class="empty-state">No game packages</div>';
+            list.innerHTML = '<div class="empty-state">No game packages configured</div>';
         }
     });
 }
@@ -484,15 +519,14 @@ function refreshGameList() {
 function addGame() {
     var input = document.getElementById('game-package-input');
     var pkg = input.value.trim();
-    if (!pkg) { showToast('\u274c Masukkan nama package'); return; }
+    if (!pkg) { showToast('\u274c Enter a package name'); return; }
     if (!/^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)+$/.test(pkg)) {
-        showToast('\u274c Format salah. Contoh: com.example.game'); return;
+        showToast('\u274c Invalid format. Example: com.example.game'); return;
     }
     var btn = document.getElementById('btn-add-game');
     btn.disabled = true; btn.textContent = '\u23f3 Adding...';
     showToast('\u23f3 Adding: ' + pkg);
     apiCall('add', { pkg: pkg }, 2).then(function() {
-        // Poll games.json sampai pkg muncul
         var tries = 0;
         function poll() {
             setTimeout(function() {
@@ -505,7 +539,7 @@ function addGame() {
                     } else if (++tries < 8) {
                         poll();
                     } else {
-                        showToast('\u274c Gagal tambah (duplicate/conflict?)');
+                        showToast('\u274c Failed to add (duplicate or conflict)');
                         btn.disabled = false; btn.textContent = '+ Add Game';
                     }
                 });
@@ -516,18 +550,18 @@ function addGame() {
 }
 
 function removeGame(pkg, btn) {
-    if (!confirm('Hapus "' + pkg + '" dari daftar game?')) return;
+    if (!confirm('Remove "' + pkg + '" from game list?')) return;
     if (btn) { btn.disabled = true; btn.textContent = '...'; }
     apiCall('remove', { pkg: pkg }, 2).then(function() {
         showToast('\u2705 Removed: ' + pkg);
-        setTimeout(function() { refreshGameList(); }, 1000);
+        setTimeout(refreshGameList, 1000);
     });
 }
 
 function detectCurrentApp() {
     fetchJSON('dynamic.json').then(function(data) {
         if (!data || !data.foreground || data.foreground === 'unknown') {
-            showToast('\u274c Tidak ada app terdeteksi'); return;
+            showToast('\u274c No foreground app detected'); return;
         }
         document.getElementById('game-package-input').value = data.foreground;
         showToast('\u2713 Detected: ' + data.foreground);
@@ -540,7 +574,7 @@ function detectCurrentApp() {
 function refreshAppList() {
     fetchJSON('app_governors.json').then(function(data) {
         var list = document.getElementById('app-list');
-        if (!data) { list.innerHTML = '<div class="empty-state">&#9888; Load error</div>'; return; }
+        if (!data) { list.innerHTML = '<div class="empty-state">&#9888; Failed to load</div>'; return; }
         document.getElementById('app-count').textContent = data.count || 0;
         if (data.app_governors && data.app_governors.length > 0) {
             list.innerHTML = '';
@@ -560,15 +594,13 @@ function refreshAppList() {
                 var btn = document.createElement('button');
                 btn.className = 'btn btn-small btn-remove';
                 btn.textContent = '\u00d7';
-                (function(p, b) {
-                    b.onclick = function() { removeAppGovernor(p, b); };
-                })(app.package, btn);
+                (function(p, b) { b.onclick = function() { removeAppGovernor(p, b); }; })(app.package, btn);
                 item.appendChild(info);
                 item.appendChild(btn);
                 list.appendChild(item);
             });
         } else {
-            list.innerHTML = '<div class="empty-state">Belum ada custom governor</div>';
+            list.innerHTML = '<div class="empty-state">No custom app governors configured</div>';
         }
     });
 }
@@ -576,13 +608,13 @@ function refreshAppList() {
 function addAppGovernor() {
     var pkg = document.getElementById('app-package-input').value.trim();
     var gov = document.getElementById('app-governor-select').value;
-    if (!pkg || !gov) { showToast('\u274c Isi package dan pilih governor'); return; }
+    if (!pkg || !gov) { showToast('\u274c Enter package and select a governor'); return; }
     if (!/^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)+$/.test(pkg)) {
-        showToast('\u274c Format package salah'); return;
+        showToast('\u274c Invalid package format'); return;
     }
     var btn = document.getElementById('btn-add-app');
     btn.disabled = true; btn.textContent = '\u23f3 Adding...';
-    showToast('\u23f3 Setting: ' + pkg + ' -> ' + gov);
+    showToast('\u23f3 Setting: ' + pkg + ' \u2192 ' + gov);
     apiCall('set_app_governor', { pkg: pkg, governor: gov }, 2).then(function() {
         var tries = 0;
         function poll() {
@@ -592,6 +624,7 @@ function addAppGovernor() {
                         d.app_governors.some(function(a) { return a.package === pkg; });
                     if (added) {
                         document.getElementById('app-package-input').value = '';
+                        appSelectDirty = false;
                         document.getElementById('app-governor-select').value = '';
                         refreshAppList();
                         showToast('\u2705 ' + pkg + ' \u2192 ' + gov);
@@ -599,7 +632,7 @@ function addAppGovernor() {
                     } else if (++tries < 8) {
                         poll();
                     } else {
-                        showToast('\u274c Gagal (conflict game list?)');
+                        showToast('\u274c Failed (conflict with game list?)');
                         btn.disabled = false; btn.textContent = '\u2714 Add App Governor';
                     }
                 });
@@ -610,11 +643,11 @@ function addAppGovernor() {
 }
 
 function removeAppGovernor(pkg, btn) {
-    if (!confirm('Hapus governor untuk "' + pkg + '"?')) return;
+    if (!confirm('Remove custom governor for "' + pkg + '"?')) return;
     if (btn) { btn.disabled = true; btn.textContent = '...'; }
     apiCall('remove_app_governor', { pkg: pkg }, 2).then(function() {
         showToast('\u2705 Removed: ' + pkg);
-        setTimeout(function() { refreshAppList(); }, 1000);
+        setTimeout(refreshAppList, 1000);
     });
 }
 
@@ -629,15 +662,15 @@ function refreshLog() {
         var container = document.getElementById('log-container');
         var lines = xhr.responseText.split('\n').filter(function(l) { return l.trim(); });
         if (lines.length > 0) {
-            container.innerHTML = lines.slice(-80).map(function(entry) {
-                return '<div class="log-entry">' + escapeHtml(entry) + '</div>';
+            container.innerHTML = lines.slice(-100).map(function(e) {
+                return '<div class="log-entry">' + escapeHtml(e) + '</div>';
             }).join('');
             container.scrollTop = container.scrollHeight;
         } else {
-            container.innerHTML = '<div class="log-entry">No logs</div>';
+            container.innerHTML = '<div class="log-entry">No log entries</div>';
         }
     };
-    xhr.onerror = function() { console.warn('Log load error'); };
+    xhr.onerror = function() {};
     xhr.send();
 }
 
@@ -655,40 +688,38 @@ function initEventListeners() {
         document.getElementById('log-container').innerHTML = '<div class="log-entry">Cleared</div>';
     });
     document.getElementById('game-package-input').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') addGame();
+        if (e.key === 'Enter') { document.activeElement.blur(); addGame(); }
     });
     document.getElementById('app-package-input').addEventListener('keypress', function(e) {
-        if (e.key === 'Enter') addAppGovernor();
+        if (e.key === 'Enter') { document.activeElement.blur(); addAppGovernor(); }
     });
 }
 
 function initialize() {
     initTabs();
     initGovernorBtn();
+    initAppSelect();
     initEventListeners();
 
     updateDeviceInfo();
     updateStatus();
-    updateGovernorSettings();
+    loadGovernorConfig(false);
     refreshGameList();
     refreshAppList();
     refreshLog();
 
-    // Polling realtime
-    setInterval(function() {
-        var timeSince = Date.now() - lastGovernorChangeTime;
-        updateStatus(timeSince < 5000 && timeSince > 0);
-    }, 2000);
+    // Status polling every 2s
+    setInterval(updateStatus, 2000);
 
+    // Config label polling every 5s — ONLY updates labels, NOT dropdown values (dirty flag guards this)
+    setInterval(function() {
+        if (!govSelectDirty) loadGovernorConfig(false);
+    }, 5000);
+
+    // Log auto-refresh when log tab is active
     setInterval(function() {
         if (document.getElementById('tab-log').classList.contains('active')) refreshLog();
     }, 5000);
-
-    setInterval(function() {
-        if (document.getElementById('tab-tuning').classList.contains('active')) {
-            updateGovernorSettings();
-        }
-    }, 4000);
 }
 
 if (document.readyState === 'loading') {

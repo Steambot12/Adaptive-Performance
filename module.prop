@@ -1,6 +1,6 @@
 id=adaptive_performance
 name=Adaptive Performance
-version=1.2
-versionCode=56
+version=1.2.1
+versionCode=57
 author=Steambot12
 description=Adaptive Performance - Auto CPU governor switching based on foreground app. Supports per-app governor, thermal protection, and game list management.
