@@ -7,718 +7,704 @@
     <style>
         :root {
             --primary: #6750A4;
-            --primary-container: #EADDFF;
             --on-primary: #FFFFFF;
-            --on-primary-container: #21005E;
-            --secondary: #625B71;
-            --secondary-container: #E8DEF8;
-            --on-secondary-container: #1E192B;
             --surface: #1C1B1F;
-            --surface-variant: #49454E;
             --on-surface: #E6E1E5;
             --on-surface-variant: #CAC4CF;
-            --outline: #948F99;
-            --background: #1C1B1F;
             --error: #F2B8B5;
             --success: #A8E6A3;
         }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { margin:0; padding:0; box-sizing:border-box; }
         body {
-            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            font-family: 'Roboto', sans-serif;
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
             color: var(--on-surface);
             min-height: 100vh;
             padding-bottom: 80px;
         }
-        .glass-card {
+        .glass {
             background: rgba(255,255,255,0.05);
             backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
             border: 1px solid rgba(255,255,255,0.1);
             border-radius: 20px;
             padding: 20px;
-            margin: 16px;
+            margin: 12px 16px;
             box-shadow: 0 8px 32px rgba(0,0,0,0.3);
         }
         .header {
             background: rgba(103,80,164,0.2);
             backdrop-filter: blur(20px);
-            padding: 20px;
+            padding: 18px 20px;
             text-align: center;
             border-bottom: 1px solid rgba(255,255,255,0.1);
-            position: sticky;
-            top: 0;
-            z-index: 100;
+            position: sticky; top:0; z-index:100;
         }
-        .header h1 { font-size: 24px; font-weight: 500; margin-bottom: 4px; }
-        .header .subtitle { font-size: 12px; color: var(--on-surface-variant); }
-        .tab-content { display: none; animation: fadeIn 0.3s ease; }
-        .tab-content.active { display: block; }
-        @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
-        .status-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; margin: 16px; }
+        .header h1 { font-size:22px; font-weight:500; }
+        .header .sub { font-size:11px; color:var(--on-surface-variant); margin-top:2px; }
+        .tab-content { display:none; }
+        .tab-content.active { display:block; animation: fadeIn .3s ease; }
+        @keyframes fadeIn { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+        /* Status grid */
+        .status-grid {
+            display:grid; grid-template-columns:repeat(2,1fr);
+            gap:10px; margin:12px 16px;
+        }
         .status-item {
-            background: rgba(255,255,255,0.05);
-            backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 16px;
-            padding: 16px;
-            text-align: center;
+            background:rgba(255,255,255,0.05);
+            border:1px solid rgba(255,255,255,0.1);
+            border-radius:16px; padding:14px; text-align:center;
         }
-        .status-label { font-size: 12px; color: var(--on-surface-variant); margin-bottom: 8px; }
-        .status-value { font-size: 18px; font-weight: 500; color: var(--on-surface); }
-        .status-value.idle { color: #90CAF9; }
-        .status-value.gaming { color: #F48FB1; }
-        .status-value.thermal_throttle { color: #FF8A65; }
-        .info-grid { display: grid; gap: 12px; }
-        .info-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px;
-            background: rgba(255,255,255,0.03);
-            border-radius: 12px;
+        .s-label { font-size:11px; color:var(--on-surface-variant); margin-bottom:6px; }
+        .s-value { font-size:17px; font-weight:500; }
+        .s-value.idle    { color:#90CAF9; }
+        .s-value.gaming  { color:#F48FB1; }
+        .s-value.thermal_throttle { color:#FF8A65; }
+        /* Info rows */
+        .info-row {
+            display:flex; justify-content:space-between; align-items:center;
+            padding:10px 12px;
+            background:rgba(255,255,255,0.03);
+            border-radius:10px; margin-bottom:8px;
         }
-        .info-label { font-size: 14px; color: var(--on-surface-variant); }
-        .info-value { font-size: 14px; font-weight: 500; color: var(--on-surface); }
-        .section-header {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 16px;
-            font-size: 18px;
-            font-weight: 500;
-        }
-        .section-icon { font-size: 20px; opacity: 0.9; }
-        .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 12px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            background: rgba(103,80,164,0.3);
-            color: var(--on-surface);
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        .btn:hover:not(:disabled) { background: rgba(103,80,164,0.5); transform: translateY(-2px); box-shadow: 0 4px 12px rgba(103,80,164,0.3); }
-        .btn:active:not(:disabled) { transform: translateY(0); }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-        .btn-primary { background: var(--primary); color: var(--on-primary); border: none; }
-        .btn-small { padding: 8px 16px; font-size: 12px; }
-        select {
-            width: 100%;
-            padding: 12px;
-            border-radius: 12px;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
-            color: var(--on-surface);
-            font-size: 14px;
-            margin: 8px 0;
-        }
-        select option { background: #1C1B1F; color: var(--on-surface); }
-        input[type="text"] {
-            width: 100%;
-            padding: 12px;
-            border-radius: 12px;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
-            color: var(--on-surface);
-            font-size: 14px;
-            margin: 8px 0;
-        }
+        .i-label { font-size:13px; color:var(--on-surface-variant); }
+        .i-value { font-size:13px; font-weight:500; }
+        /* Section header */
+        .sec { display:flex; align-items:center; gap:8px; margin-bottom:14px; font-size:16px; font-weight:500; }
+        .sec-icon { font-size:18px; }
         .badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 500;
-            background: rgba(103,80,164,0.3);
+            margin-left:auto;
+            background:rgba(103,80,164,0.3);
+            border-radius:10px; padding:3px 10px; font-size:12px;
         }
-        .game-list, .app-list { display: grid; gap: 8px; margin-top: 12px; }
-        .game-item, .app-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 12px;
-            background: rgba(255,255,255,0.03);
-            border-radius: 12px;
-            border: 1px solid rgba(255,255,255,0.05);
+        /* Buttons */
+        .btn {
+            padding:10px 20px; border:none; border-radius:12px;
+            font-size:13px; font-weight:500; cursor:pointer;
+            transition:all .25s ease;
+            background:rgba(103,80,164,0.3);
+            color:var(--on-surface);
+            border:1px solid rgba(255,255,255,0.1);
         }
-        .game-name { font-size: 13px; color: var(--on-surface); flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .btn-remove {
-            padding: 6px 12px;
-            font-size: 11px;
-            background: rgba(242,184,181,0.2);
-            color: var(--error);
-            border: 1px solid rgba(242,184,181,0.3);
+        .btn:hover:not(:disabled) { background:rgba(103,80,164,0.55); transform:translateY(-1px); }
+        .btn:disabled { opacity:.45; cursor:not-allowed; }
+        .btn-primary { background:var(--primary); color:#fff; border:none; }
+        .btn-primary:hover:not(:disabled) { background:#7965af; }
+        .btn-sm { padding:7px 14px; font-size:11px; }
+        .btn-danger { background:rgba(242,184,181,0.2); color:var(--error); border:1px solid rgba(242,184,181,0.3); }
+        .btn-danger:hover:not(:disabled) { background:rgba(242,184,181,0.4); }
+        /* Inputs */
+        input[type=text], select {
+            width:100%; padding:11px 14px;
+            border-radius:12px;
+            background:rgba(255,255,255,0.06);
+            border:1px solid rgba(255,255,255,0.15);
+            color:var(--on-surface); font-size:13px;
+            margin:6px 0;
         }
-        .btn-remove:hover:not(:disabled) { background: rgba(242,184,181,0.4); }
-        .app-info { flex: 1; overflow: hidden; }
-        .app-package { font-size: 13px; color: var(--on-surface); margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .app-governor { font-size: 11px; color: var(--on-surface-variant); }
-        .log-container {
-            background: rgba(0,0,0,0.3);
-            border-radius: 12px;
-            padding: 16px;
-            height: 400px;
-            overflow-y: auto;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            line-height: 1.6;
+        select option { background:#1C1B1F; }
+        .row-btns { display:flex; gap:8px; margin:8px 0; flex-wrap:wrap; }
+        .row-btns .btn { flex:1; min-width:110px; }
+        /* Lists */
+        .list { display:grid; gap:8px; margin-top:12px; }
+        .list-item {
+            display:flex; align-items:center; gap:8px;
+            padding:10px 12px;
+            background:rgba(255,255,255,0.03);
+            border:1px solid rgba(255,255,255,0.06);
+            border-radius:12px;
         }
-        .log-entry { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--on-surface-variant); }
+        .list-pkg { font-size:12px; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+        .list-sub { font-size:11px; color:var(--on-surface-variant); margin-top:2px; }
+        /* Log */
+        .log-box {
+            background:rgba(0,0,0,0.35); border-radius:12px;
+            padding:14px; height:380px; overflow-y:auto;
+            font-family:'Courier New',monospace; font-size:11px; line-height:1.6;
+        }
+        .log-line { padding:2px 0; border-bottom:1px solid rgba(255,255,255,0.04); color:var(--on-surface-variant); }
+        /* Bottom nav */
         .bottom-nav {
-            position: fixed;
-            bottom: 0; left: 0; right: 0;
-            display: flex;
-            justify-content: space-around;
-            background: rgba(28,27,31,0.95);
-            backdrop-filter: blur(20px);
-            border-top: 1px solid rgba(255,255,255,0.1);
-            padding: 12px 0 20px;
-            z-index: 1000;
+            position:fixed; bottom:0; left:0; right:0;
+            display:flex; justify-content:space-around;
+            background:rgba(20,20,28,0.97);
+            backdrop-filter:blur(20px);
+            border-top:1px solid rgba(255,255,255,0.1);
+            padding:10px 0 18px; z-index:1000;
         }
         .nav-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 4px;
-            cursor: pointer;
-            padding: 8px 20px;
-            border-radius: 16px;
-            transition: all 0.3s ease;
-            color: var(--on-surface-variant);
+            display:flex; flex-direction:column; align-items:center; gap:3px;
+            cursor:pointer; padding:6px 18px; border-radius:14px;
+            transition:.25s; color:var(--on-surface-variant);
         }
-        .nav-item.active { background: rgba(103,80,164,0.2); color: var(--primary); }
-        .nav-icon { font-size: 24px; font-weight: 300; }
-        .nav-label { font-size: 12px; font-weight: 500; }
-        .action-buttons { display: flex; gap: 8px; margin: 12px 0; flex-wrap: wrap; }
-        .action-buttons .btn { flex: 1; min-width: 120px; }
+        .nav-item.active { background:rgba(103,80,164,0.2); color:var(--primary); }
+        .nav-icon { font-size:22px; }
+        .nav-label { font-size:11px; font-weight:500; }
+        /* Info box */
         .info-box {
-            background: rgba(103,80,164,0.1);
-            border: 1px solid rgba(103,80,164,0.3);
-            border-radius: 12px;
-            padding: 12px;
-            margin: 12px 0;
-            font-size: 12px;
-            color: var(--on-surface-variant);
-            line-height: 1.5;
+            background:rgba(103,80,164,0.1);
+            border:1px solid rgba(103,80,164,0.3);
+            border-radius:10px; padding:10px 12px;
+            margin:8px 0; font-size:11px;
+            color:var(--on-surface-variant); line-height:1.5;
         }
-        .empty-state { text-align: center; padding: 40px 20px; color: var(--on-surface-variant); }
-        .toast {
-            position: fixed;
-            bottom: 90px; left: 50%; transform: translateX(-50%);
-            background: rgba(30,30,40,0.97);
-            color: #fff;
-            padding: 12px 24px;
-            border-radius: 24px;
-            font-size: 14px;
-            z-index: 9999;
-            box-shadow: 0 4px 24px rgba(0,0,0,0.4);
-            transition: opacity 0.3s;
-            white-space: nowrap;
+        .empty { text-align:center; padding:30px; color:var(--on-surface-variant); font-size:13px; }
+        /* Toast */
+        #toast {
+            position:fixed; bottom:88px; left:50%; transform:translateX(-50%);
+            background:rgba(30,30,44,0.97); color:#fff;
+            padding:11px 22px; border-radius:22px; font-size:13px;
+            z-index:9999; box-shadow:0 4px 20px rgba(0,0,0,0.5);
+            transition:opacity .3s; white-space:nowrap; pointer-events:none;
+            opacity:0;
         }
-        .toast.hide { opacity: 0; pointer-events: none; }
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb { background: rgba(103,80,164,0.5); border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: rgba(103,80,164,0.7); }
+        #toast.show { opacity:1; }
+        /* Status dot */
+        .dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:6px; }
+        .dot-ok  { background:#A8E6A3; }
+        .dot-err { background:#F2B8B5; }
+        /* Scrollbar */
+        ::-webkit-scrollbar { width:6px; }
+        ::-webkit-scrollbar-thumb { background:rgba(103,80,164,0.5); border-radius:3px; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>⚡ Adaptive Performance Monitor</h1>
-        <div class="subtitle">v1.2 by Steambot12</div>
-    </div>
 
-    <!-- Toast -->
-    <div id="toast" class="toast hide"></div>
+<div class="header">
+    <h1>⚡ Adaptive Performance</h1>
+    <div class="sub">v1.2 by Steambot12</div>
+</div>
 
-    <!-- Tab 1: Main -->
-    <div id="tab-main" class="tab-content active">
-        <div class="status-grid">
-            <div class="status-item">
-                <div class="status-label">Mode</div>
-                <div class="status-value idle" id="mode">IDLE</div>
-            </div>
-            <div class="status-item">
-                <div class="status-label">CPU Governor</div>
-                <div class="status-value" id="governor">--</div>
-            </div>
-            <div class="status-item">
-                <div class="status-label">Foreground App</div>
-                <div class="status-value" id="foreground-app" style="font-size:11px;">--</div>
-            </div>
-            <div class="status-item">
-                <div class="status-label">Temperature</div>
-                <div class="status-value" id="temperature">--</div>
-            </div>
+<div id="toast"></div>
+
+<!-- ===== TAB MAIN ===== -->
+<div id="tab-main" class="tab-content active">
+    <div class="status-grid">
+        <div class="status-item">
+            <div class="s-label">Mode</div>
+            <div class="s-value idle" id="mode">IDLE</div>
         </div>
-        <div class="glass-card">
-            <div class="section-header"><span class="section-icon">⚙</span>Device Information</div>
-            <div class="info-grid">
-                <div class="info-item"><span class="info-label">Device</span><span class="info-value" id="device">--</span></div>
-                <div class="info-item"><span class="info-label">Kernel</span><span class="info-value" id="kernel">--</span></div>
-                <div class="info-item"><span class="info-label">CPU Cores</span><span class="info-value" id="cpu-cores">--</span></div>
-                <div class="info-item"><span class="info-label">Chipset</span><span class="info-value" id="chipset">--</span></div>
-            </div>
+        <div class="status-item">
+            <div class="s-label">CPU Governor</div>
+            <div class="s-value" id="governor">--</div>
+        </div>
+        <div class="status-item">
+            <div class="s-label">Foreground App</div>
+            <div class="s-value" id="fg-app" style="font-size:11px;">--</div>
+        </div>
+        <div class="status-item">
+            <div class="s-label">Temperature</div>
+            <div class="s-value" id="temperature">--</div>
         </div>
     </div>
+    <div class="glass">
+        <div class="sec"><span class="sec-icon">⚙</span>Device Info</div>
+        <div class="info-row"><span class="i-label">Device</span><span class="i-value" id="dev-device">--</span></div>
+        <div class="info-row"><span class="i-label">Kernel</span><span class="i-value" id="dev-kernel" style="font-size:11px;">--</span></div>
+        <div class="info-row"><span class="i-label">CPU Cores</span><span class="i-value" id="dev-cores">--</span></div>
+        <div class="info-row"><span class="i-label">Chipset</span><span class="i-value" id="dev-chipset">--</span></div>
+        <div class="info-row"><span class="i-label">Idle Governor</span><span class="i-value" id="dev-idle-gov">--</span></div>
+        <div class="info-row"><span class="i-label">Gaming Governor</span><span class="i-value" id="dev-gaming-gov">--</span></div>
+    </div>
+</div>
 
-    <!-- Tab 2: Tuning -->
-    <div id="tab-tuning" class="tab-content">
-        <div class="glass-card">
-            <div class="section-header"><span class="section-icon">⚙</span>CPU Governor Settings</div>
-            <div class="info-grid">
-                <div class="info-item"><span class="info-label">Idle Governor</span><span class="info-value" id="idle-governor">--</span></div>
-                <div class="info-item"><span class="info-label">Gaming Governor</span><span class="info-value" id="gaming-governor">--</span></div>
-            </div>
-            <select id="governor-select">
-                <option value="">Select Gaming Governor</option>
-            </select>
-            <div class="info-box">ℹ️ Gaming governor applies when a game is in foreground. Changes take effect immediately.</div>
-        </div>
+<!-- ===== TAB TUNING ===== -->
+<div id="tab-tuning" class="tab-content">
 
-        <div class="glass-card">
-            <div class="section-header">
-                <span class="section-icon">◆</span>Game Package Manager
-                <span class="badge" id="game-count">0</span>
-            </div>
-            <div class="action-buttons">
-                <button class="btn btn-small" id="btn-detect">⌕ Detect App</button>
-                <button class="btn btn-small" id="btn-refresh-games">↻ Refresh</button>
-            </div>
-            <input type="text" id="game-package-input" placeholder="com.example.game">
-            <button class="btn btn-primary" id="btn-add-game" style="width:100%;margin-top:8px;">+ Add Game</button>
-            <div style="margin-top:16px;">
-                <div class="section-header" style="font-size:14px;"><span class="section-icon" style="font-size:16px;">≡</span>Game List</div>
-                <div id="game-list" class="game-list"><div class="empty-state">Loading...</div></div>
-            </div>
+    <!-- Governor Setting -->
+    <div class="glass">
+        <div class="sec"><span class="sec-icon">⚙</span>CPU Governor</div>
+        <div class="info-row">
+            <span class="i-label">Idle Governor</span>
+            <span class="i-value" id="t-idle-gov">--</span>
         </div>
-
-        <div class="glass-card">
-            <div class="section-header">
-                <span class="section-icon">◈</span>Per-App Governor Settings
-                <span class="badge" id="app-count">0</span>
-            </div>
-            <input type="text" id="app-package-input" placeholder="com.example.app">
-            <select id="app-governor-select">
-                <option value="">-- Select Governor --</option>
-            </select>
-            <button class="btn btn-primary" id="btn-add-app" style="width:100%;margin-top:8px;">✓ Add App Governor</button>
-            <div class="info-box">ℹ️ Set a specific governor for any app. Cannot overlap with game list.</div>
-            <div style="margin-top:16px;">
-                <div class="section-header" style="font-size:14px;display:flex;justify-content:space-between;align-items:center;">
-                    <span style="display:flex;align-items:center;gap:8px;"><span class="section-icon" style="font-size:16px;">≡</span>Configured Apps</span>
-                    <button class="btn btn-small" id="btn-refresh-apps">↻ Refresh</button>
-                </div>
-                <div id="app-list" class="app-list"><div class="empty-state">No custom app governors configured</div></div>
-            </div>
+        <div class="info-row">
+            <span class="i-label">Gaming Governor (active)</span>
+            <span class="i-value" id="t-gaming-gov">--</span>
         </div>
+        <select id="gov-select"><option value="">-- Select Gaming Governor --</option></select>
+        <button class="btn btn-primary" id="btn-set-gov" style="width:100%;margin-top:8px;">✔ Apply Governor</button>
+        <div class="info-box">ℹ️ Perubahan langsung diterapkan. Pastikan pilih governor yang tersedia di device kamu.</div>
     </div>
 
-    <!-- Tab 3: Log -->
-    <div id="tab-log" class="tab-content">
-        <div class="glass-card">
-            <div class="section-header"><span class="section-icon">≡</span>Live Log</div>
-            <div class="action-buttons">
-                <button class="btn btn-small" id="btn-refresh-log">↻ Refresh Log</button>
-                <button class="btn btn-small" id="btn-clear-log">× Clear Display</button>
-            </div>
-            <div class="log-container" id="log-container"><div class="log-entry">Initializing...</div></div>
+    <!-- Game Package Manager -->
+    <div class="glass">
+        <div class="sec">
+            <span class="sec-icon">◆</span>Game Package Manager
+            <span class="badge" id="game-count">0</span>
         </div>
+        <div class="row-btns">
+            <button class="btn btn-sm" id="btn-detect">⌕ Detect App</button>
+            <button class="btn btn-sm" id="btn-refresh-games">↻ Refresh</button>
+        </div>
+        <input type="text" id="game-pkg-input" placeholder="com.example.game">
+        <button class="btn btn-primary" id="btn-add-game" style="width:100%;margin-top:6px;">+ Add Game Package</button>
+        <div id="game-list" class="list"><div class="empty">Loading...</div></div>
     </div>
 
-    <div class="bottom-nav">
-        <div class="nav-item active" data-tab="main"><div class="nav-icon">⌂</div><div class="nav-label">Main</div></div>
-        <div class="nav-item" data-tab="tuning"><div class="nav-icon">⚙</div><div class="nav-label">Tuning</div></div>
-        <div class="nav-item" data-tab="log"><div class="nav-icon">☰</div><div class="nav-label">Log</div></div>
+    <!-- Per-App Governor -->
+    <div class="glass">
+        <div class="sec">
+            <span class="sec-icon">◈</span>Per-App Governor
+            <span class="badge" id="app-count">0</span>
+        </div>
+        <input type="text" id="app-pkg-input" placeholder="com.example.app">
+        <select id="app-gov-select"><option value="">-- Select Governor --</option></select>
+        <button class="btn btn-primary" id="btn-add-app" style="width:100%;margin-top:6px;">✔ Add App Governor</button>
+        <div class="info-box">ℹ️ Per-App Governor tidak bisa overlap dengan daftar game.</div>
+        <div class="row-btns" style="margin-top:12px;">
+            <button class="btn btn-sm" id="btn-refresh-apps">↻ Refresh App List</button>
+        </div>
+        <div id="app-list" class="list"><div class="empty">No custom governors</div></div>
     </div>
+</div>
 
-    <script>
-        const API_PORT = 9877;
-        const HTTP_PORT = 9876;
-        let toastTimer = null;
+<!-- ===== TAB LOG ===== -->
+<div id="tab-log" class="tab-content">
+    <div class="glass">
+        <div class="sec"><span class="sec-icon">☰</span>Live Log</div>
+        <div class="row-btns">
+            <button class="btn btn-sm" id="btn-refresh-log">↻ Refresh</button>
+            <button class="btn btn-sm" id="btn-clear-log">× Clear</button>
+        </div>
+        <div class="log-box" id="log-box"><div class="log-line">Initializing...</div></div>
+    </div>
+</div>
 
-        // ── Toast (ganti alert) ──────────────────────────────
-        function toast(msg, duration = 2500) {
-            const el = document.getElementById('toast');
-            el.textContent = msg;
-            el.classList.remove('hide');
-            clearTimeout(toastTimer);
-            toastTimer = setTimeout(() => el.classList.add('hide'), duration);
+<!-- Bottom Nav -->
+<div class="bottom-nav">
+    <div class="nav-item active" data-tab="main"><div class="nav-icon">⌂</div><div class="nav-label">Main</div></div>
+    <div class="nav-item" data-tab="tuning"><div class="nav-icon">⚙</div><div class="nav-label">Tuning</div></div>
+    <div class="nav-item" data-tab="log"><div class="nav-icon">☰</div><div class="nav-label">Log</div></div>
+</div>
+
+<script>
+// ================================================================
+// CONFIG
+// ================================================================
+const HTTP = 9876;
+const API  = 9877;
+let toastTmr = null;
+
+// ================================================================
+// TOAST
+// ================================================================
+function toast(msg, ms) {
+    ms = ms || 2800;
+    const el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTmr);
+    toastTmr = setTimeout(function(){ el.classList.remove('show'); }, ms);
+}
+
+function esc(s) {
+    const d = document.createElement('div');
+    d.textContent = s;
+    return d.innerHTML;
+}
+
+// ================================================================
+// FETCH JSON  - baca dari HTTP server port 9876
+// ================================================================
+function fetchJSON(filename) {
+    return fetch('http://127.0.0.1:' + HTTP + '/' + filename + '?_=' + Date.now(), {
+        cache: 'no-store'
+    })
+    .then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.json();
+    })
+    .catch(function(e) {
+        console.warn('fetchJSON', filename, e.message);
+        return null;
+    });
+}
+
+// ================================================================
+// API CALL  - kirim ke port 9877, pakai XHR agar bisa baca response
+// ================================================================
+function apiCall(action, params) {
+    params = params || {};
+    return new Promise(function(resolve) {
+        var qs = 'action=' + encodeURIComponent(action);
+        var keys = Object.keys(params);
+        for (var i = 0; i < keys.length; i++) {
+            qs += '&' + encodeURIComponent(keys[i]) + '=' + encodeURIComponent(params[keys[i]]);
         }
+        qs += '&_t=' + Date.now();
+        var url = 'http://127.0.0.1:' + API + '/?' + qs;
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', url, true);
+        xhr.timeout = 6000;
+        xhr.onload = function() {
+            try { resolve(JSON.parse(xhr.responseText)); }
+            catch(e) { resolve({status:'error', message:'Parse error'}); }
+        };
+        xhr.onerror   = function() { resolve({status:'error', message:'Network error'}); };
+        xhr.ontimeout = function() { resolve({status:'error', message:'Timeout'}); };
+        xhr.send();
+    });
+}
 
-        function escapeHtml(text) {
-            const d = document.createElement('div');
-            d.textContent = text;
-            return d.innerHTML;
-        }
-
-        // ── Fetch JSON dari HTTP server (port 9876) ──────────
-        async function fetchJSON(filename) {
-            try {
-                const r = await fetch(
-                    `http://127.0.0.1:${HTTP_PORT}/${filename}?_=${Date.now()}`,
-                    { cache: 'no-store' }
-                );
-                if (!r.ok) throw new Error('HTTP ' + r.status);
-                return await r.json();
-            } catch (e) {
-                console.warn('fetchJSON', filename, e.message);
-                return null;
-            }
-        }
-
-        // ── API call ke port 9877 ────────────────────────────
-        // Pakai XMLHttpRequest agar bisa baca response di Android WebView
-        function apiCall(action, params = {}) {
-            return new Promise((resolve) => {
-                const qs = new URLSearchParams({ action, ...params, _t: Date.now() });
-                const url = `http://127.0.0.1:${API_PORT}/?${qs}`;
-                const xhr = new XMLHttpRequest();
-                xhr.open('GET', url, true);
-                xhr.timeout = 5000;
-                xhr.onload = () => {
-                    try { resolve(JSON.parse(xhr.responseText)); }
-                    catch(e) { resolve({ status: 'error', message: 'Parse error' }); }
-                };
-                xhr.onerror = () => resolve({ status: 'error', message: 'Network error' });
-                xhr.ontimeout = () => resolve({ status: 'error', message: 'Timeout' });
-                xhr.send();
-            });
-        }
-
-        // ── Polling helper: tunggu JSON berubah sesuai kondisi ─
-        async function pollUntil(filename, check, maxTries = 8, interval = 600) {
-            for (let i = 0; i < maxTries; i++) {
-                await new Promise(r => setTimeout(r, interval));
-                const data = await fetchJSON(filename);
-                if (data && check(data)) return data;
-            }
-            return null;
-        }
-
-        // ── Tab switching ────────────────────────────────────
-        function initTabs() {
-            document.querySelectorAll('.nav-item').forEach(item => {
-                item.addEventListener('click', function() {
-                    const tab = this.dataset.tab;
-                    document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-                    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-                    document.getElementById('tab-' + tab).classList.add('active');
-                    this.classList.add('active');
-                    if (tab === 'log') refreshLog();
-                    if (tab === 'tuning') {
-                        refreshGameList();
-                        refreshAppList();
-                        updateGovernorSettings();
-                    }
+// ================================================================
+// POLL  - tunggu JSON berubah sesuai kondisi
+// ================================================================
+function pollUntil(filename, check, tries, interval) {
+    tries    = tries    || 10;
+    interval = interval || 700;
+    return new Promise(function(resolve) {
+        var count = 0;
+        function step() {
+            setTimeout(function() {
+                fetchJSON(filename).then(function(data) {
+                    if (data && check(data)) { resolve(data); return; }
+                    count++;
+                    if (count < tries) step();
+                    else resolve(null);
                 });
-            });
+            }, interval);
         }
+        step();
+    });
+}
 
-        // ── Update main status ───────────────────────────────
-        async function updateStatus() {
-            const data = await fetchJSON('dynamic.json');
-            if (!data) return;
-
-            const state = data.state || 'idle';
-            const modeEl = document.getElementById('mode');
-            modeEl.textContent = state.toUpperCase().replace('_', ' ');
-            modeEl.className = 'status-value ' + state;
-
-            document.getElementById('governor').textContent = data.governor || '--';
-
-            const fg = data.foreground || '';
-            const fgEl = document.getElementById('foreground-app');
-            if (fg && fg !== 'unknown') {
-                fgEl.textContent = fg.length > 25 ? fg.substring(0, 22) + '...' : fg;
-                fgEl.title = fg;
-            } else {
-                fgEl.textContent = 'No app';
+// ================================================================
+// TABS
+// ================================================================
+function initTabs() {
+    document.querySelectorAll('.nav-item').forEach(function(item) {
+        item.addEventListener('click', function() {
+            var tab = this.dataset.tab;
+            document.querySelectorAll('.tab-content').forEach(function(t){ t.classList.remove('active'); });
+            document.querySelectorAll('.nav-item').forEach(function(n){ n.classList.remove('active'); });
+            document.getElementById('tab-' + tab).classList.add('active');
+            this.classList.add('active');
+            if (tab === 'log') refreshLog();
+            if (tab === 'tuning') {
+                updateGovernorUI();
+                refreshGameList();
+                refreshAppList();
             }
+        });
+    });
+}
 
-            const temp = parseInt(data.temperature) || 0;
-            document.getElementById('temperature').textContent =
-                (temp > 0 && temp < 150000) ? (temp / 1000).toFixed(1) + '°C' : '--';
+// ================================================================
+// MAIN - STATUS UPDATE  (polling setiap 2 detik)
+// ================================================================
+function updateStatus() {
+    fetchJSON('dynamic.json').then(function(data) {
+        if (!data) return;
+        var state = data.state || 'idle';
+        var modeEl = document.getElementById('mode');
+        modeEl.textContent = state.toUpperCase().replace('_',' ');
+        modeEl.className = 's-value ' + state;
+
+        document.getElementById('governor').textContent = data.governor || '--';
+
+        var fg = data.foreground || '';
+        var fgEl = document.getElementById('fg-app');
+        if (fg && fg !== 'unknown') {
+            fgEl.textContent = fg.length > 28 ? fg.substring(0,25)+'...' : fg;
+            fgEl.title = fg;
+        } else {
+            fgEl.textContent = '--';
         }
 
-        async function updateDeviceInfo() {
-            const data = await fetchJSON('static.json');
-            if (!data) return;
-            document.getElementById('device').textContent = data.device || '--';
-            document.getElementById('kernel').textContent = data.kernel || '--';
-            document.getElementById('cpu-cores').textContent = data.cores || '--';
-            document.getElementById('chipset').textContent = data.chipset || '--';
+        var temp = parseInt(data.temperature) || 0;
+        document.getElementById('temperature').textContent =
+            (temp > 1000 && temp < 200000) ? (temp/1000).toFixed(1) + '\u00b0C' : '--';
+
+        // Update gaming governor di main tab juga
+        document.getElementById('dev-gaming-gov').textContent = data.governor || '--';
+    });
+}
+
+function updateDeviceInfo() {
+    fetchJSON('static.json').then(function(data) {
+        if (!data) return;
+        document.getElementById('dev-device').textContent  = data.device  || '--';
+        document.getElementById('dev-kernel').textContent  = data.kernel  || '--';
+        document.getElementById('dev-cores').textContent   = data.cores   || '--';
+        document.getElementById('dev-chipset').textContent = data.chipset || '--';
+        document.getElementById('dev-idle-gov').textContent = data.default_governor || '--';
+    });
+}
+
+// ================================================================
+// TUNING - GOVERNOR
+// ================================================================
+function updateGovernorUI() {
+    fetchJSON('config.json').then(function(data) {
+        if (!data) { toast('\u26a0 Cannot read config'); return; }
+
+        document.getElementById('t-idle-gov').textContent   = data.default_idle      || '--';
+        document.getElementById('t-gaming-gov').textContent = data.gaming_governor   || '--';
+        document.getElementById('dev-gaming-gov').textContent = data.gaming_governor || '--';
+
+        var govSel = document.getElementById('gov-select');
+        var appSel = document.getElementById('app-gov-select');
+        var prevVal = govSel.value;
+
+        if (data.available_governors && data.available_governors.length > 0) {
+            govSel.innerHTML = '<option value="">-- Select Gaming Governor --</option>';
+            appSel.innerHTML = '<option value="">-- Select Governor --</option>';
+            data.available_governors.forEach(function(g) {
+                govSel.add(new Option(g, g));
+                appSel.add(new Option(g, g));
+            });
+            govSel.value = data.gaming_governor || prevVal;
         }
+    });
+}
 
-        // ── Governor settings ────────────────────────────────
-        async function updateGovernorSettings() {
-            const data = await fetchJSON('config.json');
-            if (!data) return;
-            document.getElementById('idle-governor').textContent = data.default_idle || '--';
-            document.getElementById('gaming-governor').textContent = data.gaming_governor || '--';
+function initGovernorBtn() {
+    document.getElementById('btn-set-gov').addEventListener('click', function() {
+        var gov = document.getElementById('gov-select').value;
+        if (!gov) { toast('\u274c Pilih governor terlebih dahulu'); return; }
+        var btn = this;
+        btn.disabled = true;
+        btn.textContent = '\u23f3 Applying...';
+        toast('\u23f3 Setting: ' + gov);
 
-            const mainSel = document.getElementById('governor-select');
-            const appSel  = document.getElementById('app-governor-select');
-            const prevMain = mainSel.value;
+        apiCall('set_governor', {governor: gov}).then(function(res) {
+            if (res.status === 'success') {
+                // Poll config.json sampai gaming_governor sesuai
+                pollUntil('config.json', function(d){ return d.gaming_governor === gov; })
+                    .then(function() {
+                        document.getElementById('t-gaming-gov').textContent = gov;
+                        document.getElementById('dev-gaming-gov').textContent = gov;
+                        toast('\u2705 Governor set: ' + gov);
+                    });
+            } else {
+                toast('\u274c ' + (res.message || 'Failed'));
+                updateGovernorUI();
+            }
+            btn.disabled = false;
+            btn.textContent = '\u2714 Apply Governor';
+        });
+    });
+}
 
-            if (data.available_governors && data.available_governors.length > 0) {
-                mainSel.innerHTML = '<option value="">Select Gaming Governor</option>';
-                appSel.innerHTML  = '<option value="">-- Select Governor --</option>';
-                data.available_governors.forEach(g => {
-                    mainSel.add(new Option(g, g));
-                    appSel.add(new Option(g, g));
+// ================================================================
+// GAME LIST
+// ================================================================
+function refreshGameList() {
+    fetchJSON('games.json').then(function(data) {
+        var list = document.getElementById('game-list');
+        if (!data) { list.innerHTML = '<div class="empty">\u26a0 Load error</div>'; return; }
+        document.getElementById('game-count').textContent = data.count || 0;
+        if (data.games && data.games.length > 0) {
+            list.innerHTML = '';
+            data.games.forEach(function(pkg) {
+                var item = document.createElement('div');
+                item.className = 'list-item';
+                item.innerHTML = '<span class="list-pkg">' + esc(pkg) + '</span>' +
+                    '<button class="btn btn-sm btn-danger" onclick="removeGame(\'' + esc(pkg) + '\',this)">' +
+                    '\u00d7 Remove</button>';
+                list.appendChild(item);
+            });
+        } else {
+            list.innerHTML = '<div class="empty">No game packages</div>';
+        }
+    });
+}
+
+function addGame() {
+    var input = document.getElementById('game-pkg-input');
+    var pkg = input.value.trim();
+    if (!pkg) { toast('\u274c Masukkan nama package'); return; }
+    if (!/^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)+$/.test(pkg)) {
+        toast('\u274c Format salah. Contoh: com.example.game'); return;
+    }
+    var btn = document.getElementById('btn-add-game');
+    btn.disabled = true; btn.textContent = '\u23f3 Adding...';
+    toast('\u23f3 Menambahkan: ' + pkg);
+
+    apiCall('add', {pkg: pkg}).then(function(res) {
+        if (res.status === 'success') {
+            pollUntil('games.json', function(d){ return d.games && d.games.indexOf(pkg) !== -1; })
+                .then(function() { refreshGameList(); });
+            input.value = '';
+            toast('\u2705 Added: ' + pkg);
+        } else {
+            toast('\u274c ' + (res.message || 'Gagal menambahkan'));
+        }
+        btn.disabled = false; btn.textContent = '+ Add Game Package';
+    });
+}
+
+function removeGame(pkg, btn) {
+    if (!confirm('Hapus "' + pkg + '" dari daftar game?')) return;
+    if (btn) { btn.disabled = true; btn.textContent = '...'; }
+    toast('\u23f3 Menghapus...');
+    apiCall('remove', {pkg: pkg}).then(function(res) {
+        if (res.status === 'success') {
+            pollUntil('games.json', function(d){ return !d.games || d.games.indexOf(pkg) === -1; })
+                .then(function() { refreshGameList(); });
+            toast('\u2705 Removed: ' + pkg);
+        } else {
+            toast('\u274c Gagal hapus: ' + pkg);
+            if (btn) { btn.disabled = false; btn.textContent = '\u00d7 Remove'; }
+        }
+    });
+}
+
+function detectApp() {
+    fetchJSON('dynamic.json').then(function(data) {
+        if (!data || !data.foreground || data.foreground === 'unknown') {
+            toast('\u274c Tidak ada app terdeteksi'); return;
+        }
+        document.getElementById('game-pkg-input').value = data.foreground;
+        toast('\u2713 Detected: ' + data.foreground);
+    });
+}
+
+// ================================================================
+// APP GOVERNOR LIST
+// ================================================================
+function refreshAppList() {
+    fetchJSON('app_governors.json').then(function(data) {
+        var list = document.getElementById('app-list');
+        if (!data) { list.innerHTML = '<div class="empty">\u26a0 Load error</div>'; return; }
+        document.getElementById('app-count').textContent = data.count || 0;
+        if (data.app_governors && data.app_governors.length > 0) {
+            list.innerHTML = '';
+            data.app_governors.forEach(function(app) {
+                var item = document.createElement('div');
+                item.className = 'list-item';
+                item.innerHTML =
+                    '<div style="flex:1;overflow:hidden;">' +
+                    '<div class="list-pkg">' + esc(app.package) + '</div>' +
+                    '<div class="list-sub">Governor: ' + esc(app.governor) + '</div></div>' +
+                    '<button class="btn btn-sm btn-danger" onclick="removeAppGov(\'' + esc(app.package) + '\',this)">\u00d7</button>';
+                list.appendChild(item);
+            });
+        } else {
+            list.innerHTML = '<div class="empty">Belum ada custom governor</div>';
+        }
+    });
+}
+
+function addAppGov() {
+    var pkg = document.getElementById('app-pkg-input').value.trim();
+    var gov = document.getElementById('app-gov-select').value;
+    if (!pkg || !gov) { toast('\u274c Isi package dan pilih governor'); return; }
+    if (!/^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)+$/.test(pkg)) {
+        toast('\u274c Format package salah'); return;
+    }
+    var btn = document.getElementById('btn-add-app');
+    btn.disabled = true; btn.textContent = '\u23f3 Adding...';
+    toast('\u23f3 Menambahkan: ' + pkg + ' \u2192 ' + gov);
+
+    apiCall('set_app_governor', {pkg: pkg, governor: gov}).then(function(res) {
+        if (res.status === 'success') {
+            pollUntil('app_governors.json',
+                function(d){ return d.app_governors && d.app_governors.some(function(a){ return a.package===pkg; }); })
+                .then(function() {
+                    document.getElementById('app-pkg-input').value = '';
+                    document.getElementById('app-gov-select').value = '';
+                    refreshAppList();
                 });
-                mainSel.value = data.gaming_governor || prevMain;
-            }
+            toast('\u2705 Added: ' + pkg + ' \u2192 ' + gov);
+        } else {
+            toast('\u274c ' + (res.message || 'Gagal / konflik dengan game list'));
         }
+        btn.disabled = false; btn.textContent = '\u2714 Add App Governor';
+    });
+}
 
-        // ── Set gaming governor ──────────────────────────────
-        function initGovernorSelect() {
-            document.getElementById('governor-select').addEventListener('change', async function() {
-                const gov = this.value;
-                if (!gov) return;
-                this.disabled = true;
-
-                toast('⏳ Setting governor: ' + gov);
-                const res = await apiCall('set_governor', { governor: gov });
-
-                if (res.status === 'success') {
-                    // Polling config.json sampai gaming_governor berubah
-                    const updated = await pollUntil('config.json',
-                        d => d.gaming_governor === gov);
-                    document.getElementById('gaming-governor').textContent = gov;
-                    toast('✅ Governor set: ' + gov);
-                } else {
-                    toast('❌ Failed: ' + (res.message || 'unknown error'));
-                    await updateGovernorSettings(); // revert UI
-                }
-                this.disabled = false;
-            });
+function removeAppGov(pkg, btn) {
+    if (!confirm('Hapus governor untuk "' + pkg + '"?')) return;
+    if (btn) { btn.disabled = true; btn.textContent = '...'; }
+    toast('\u23f3 Menghapus...');
+    apiCall('remove_app_governor', {pkg: pkg}).then(function(res) {
+        if (res.status === 'success') {
+            pollUntil('app_governors.json',
+                function(d){ return !d.app_governors || !d.app_governors.some(function(a){ return a.package===pkg; }); })
+                .then(function() { refreshAppList(); });
+            toast('\u2705 Removed: ' + pkg);
+        } else {
+            toast('\u274c Gagal hapus');
+            if (btn) { btn.disabled = false; btn.textContent = '\u00d7'; }
         }
+    });
+}
 
-        // ── Game list ────────────────────────────────────────
-        async function refreshGameList() {
-            const data = await fetchJSON('games.json');
-            const list = document.getElementById('game-list');
-            if (!data) { list.innerHTML = '<div class="empty-state">Error loading</div>'; return; }
+// ================================================================
+// LOG
+// ================================================================
+function refreshLog() {
+    fetch('http://127.0.0.1:' + HTTP + '/log.txt?_=' + Date.now(), {cache:'no-store'})
+    .then(function(r){ return r.text(); })
+    .then(function(text) {
+        var box = document.getElementById('log-box');
+        var lines = text.split('\n').filter(function(l){ return l.trim(); });
+        if (lines.length === 0) { box.innerHTML = '<div class="log-line">No logs yet</div>'; return; }
+        box.innerHTML = lines.slice(-100).map(function(l){
+            return '<div class="log-line">' + esc(l) + '</div>';
+        }).join('');
+        box.scrollTop = box.scrollHeight;
+    })
+    .catch(function(e){ console.warn('refreshLog', e.message); });
+}
 
-            document.getElementById('game-count').textContent = data.count || 0;
-            if (data.games && data.games.length > 0) {
-                list.innerHTML = '';
-                data.games.forEach(pkg => {
-                    const item = document.createElement('div');
-                    item.className = 'game-item';
-                    const name = document.createElement('span');
-                    name.className = 'game-name';
-                    name.textContent = pkg;
-                    const btn = document.createElement('button');
-                    btn.className = 'btn btn-small btn-remove';
-                    btn.textContent = '× Remove';
-                    btn.onclick = () => removeGame(pkg, btn);
-                    item.appendChild(name);
-                    item.appendChild(btn);
-                    list.appendChild(item);
-                });
-            } else {
-                list.innerHTML = '<div class="empty-state">No games</div>';
-            }
-        }
+function clearLog() {
+    document.getElementById('log-box').innerHTML = '<div class="log-line">Cleared</div>';
+}
 
-        async function addGame() {
-            const input = document.getElementById('game-package-input');
-            const pkg = input.value.trim();
-            if (!pkg) { toast('❌ Enter a package name'); return; }
-            if (!/^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)+$/.test(pkg)) {
-                toast('❌ Invalid format: com.example.app'); return;
-            }
-            const btn = document.getElementById('btn-add-game');
-            btn.disabled = true; btn.textContent = '⏳ Adding...';
+// ================================================================
+// EVENT LISTENERS
+// ================================================================
+function initEvents() {
+    document.getElementById('btn-detect').addEventListener('click', detectApp);
+    document.getElementById('btn-refresh-games').addEventListener('click', refreshGameList);
+    document.getElementById('btn-add-game').addEventListener('click', addGame);
+    document.getElementById('btn-add-app').addEventListener('click', addAppGov);
+    document.getElementById('btn-refresh-apps').addEventListener('click', refreshAppList);
+    document.getElementById('btn-refresh-log').addEventListener('click', refreshLog);
+    document.getElementById('btn-clear-log').addEventListener('click', clearLog);
+    document.getElementById('game-pkg-input').addEventListener('keypress', function(e){
+        if (e.key === 'Enter') addGame();
+    });
+    document.getElementById('app-pkg-input').addEventListener('keypress', function(e){
+        if (e.key === 'Enter') addAppGov();
+    });
+}
 
-            const res = await apiCall('add', { pkg });
-            if (res.status === 'success') {
-                // Polling games.json sampai pkg muncul
-                await pollUntil('games.json', d => d.games && d.games.includes(pkg));
-                input.value = '';
-                await refreshGameList();
-                toast('✅ Added: ' + pkg);
-            } else {
-                toast('❌ ' + (res.message || 'Failed to add'));
-            }
-            btn.disabled = false; btn.textContent = '+ Add Game';
-        }
+// ================================================================
+// INIT
+// ================================================================
+function init() {
+    initTabs();
+    initGovernorBtn();
+    initEvents();
 
-        async function removeGame(pkg, btn) {
-            if (!confirm('Remove "' + pkg + '"?')) return;
-            if (btn) { btn.disabled = true; btn.textContent = '...'; }
-            const res = await apiCall('remove', { pkg });
-            if (res.status === 'success') {
-                await pollUntil('games.json', d => !d.games || !d.games.includes(pkg));
-                await refreshGameList();
-                toast('✅ Removed: ' + pkg);
-            } else {
-                toast('❌ Failed to remove: ' + pkg);
-                if (btn) { btn.disabled = false; btn.textContent = '× Remove'; }
-            }
-        }
+    // Load semua data awal
+    updateDeviceInfo();
+    updateStatus();
+    updateGovernorUI();
+    refreshGameList();
+    refreshAppList();
+    refreshLog();
 
-        async function detectCurrentApp() {
-            const data = await fetchJSON('dynamic.json');
-            if (!data || !data.foreground || data.foreground === 'unknown') {
-                toast('❌ No app detected'); return;
-            }
-            document.getElementById('game-package-input').value = data.foreground;
-            toast('✓ Detected: ' + data.foreground);
-        }
+    // Polling realtime
+    setInterval(updateStatus, 2000);
+    setInterval(function() {
+        if (document.getElementById('tab-log').classList.contains('active'))
+            refreshLog();
+    }, 5000);
+    // Refresh governor UI setiap 3 detik (agar perubahan dari API langsung terlihat)
+    setInterval(function() {
+        if (document.getElementById('tab-tuning').classList.contains('active'))
+            updateGovernorUI();
+    }, 3000);
+}
 
-        // ── App governor list ────────────────────────────────
-        async function refreshAppList() {
-            const data = await fetchJSON('app_governors.json');
-            const list = document.getElementById('app-list');
-            if (!data) { list.innerHTML = '<div class="empty-state">Error</div>'; return; }
-
-            document.getElementById('app-count').textContent = data.count || 0;
-            if (data.app_governors && data.app_governors.length > 0) {
-                list.innerHTML = '';
-                data.app_governors.forEach(app => {
-                    const item = document.createElement('div');
-                    item.className = 'app-item';
-                    const info = document.createElement('div');
-                    info.className = 'app-info';
-                    const pkgDiv = document.createElement('div');
-                    pkgDiv.className = 'app-package';
-                    pkgDiv.textContent = app.package;
-                    const govDiv = document.createElement('div');
-                    govDiv.className = 'app-governor';
-                    govDiv.textContent = 'Governor: ' + app.governor;
-                    info.appendChild(pkgDiv);
-                    info.appendChild(govDiv);
-                    const btn = document.createElement('button');
-                    btn.className = 'btn btn-small btn-remove';
-                    btn.textContent = '×';
-                    btn.onclick = () => removeAppGovernor(app.package, btn);
-                    item.appendChild(info);
-                    item.appendChild(btn);
-                    list.appendChild(item);
-                });
-            } else {
-                list.innerHTML = '<div class="empty-state">No custom governors</div>';
-            }
-        }
-
-        async function addAppGovernor() {
-            const pkg = document.getElementById('app-package-input').value.trim();
-            const gov = document.getElementById('app-governor-select').value;
-            if (!pkg || !gov) { toast('❌ Enter package and select governor'); return; }
-            if (!/^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)+$/.test(pkg)) {
-                toast('❌ Invalid format: com.example.app'); return;
-            }
-            const btn = document.getElementById('btn-add-app');
-            btn.disabled = true; btn.textContent = '⏳ Adding...';
-
-            const res = await apiCall('set_app_governor', { pkg, governor: gov });
-            if (res.status === 'success') {
-                await pollUntil('app_governors.json',
-                    d => d.app_governors && d.app_governors.some(a => a.package === pkg));
-                document.getElementById('app-package-input').value = '';
-                document.getElementById('app-governor-select').value = '';
-                await refreshAppList();
-                toast('✅ Added: ' + pkg + ' → ' + gov);
-            } else {
-                toast('❌ ' + (res.message || 'Failed: conflict or error'));
-            }
-            btn.disabled = false; btn.textContent = '✓ Add App Governor';
-        }
-
-        async function removeAppGovernor(pkg, btn) {
-            if (!confirm('Remove governor for "' + pkg + '"?')) return;
-            if (btn) { btn.disabled = true; btn.textContent = '...'; }
-            const res = await apiCall('remove_app_governor', { pkg });
-            if (res.status === 'success') {
-                await pollUntil('app_governors.json',
-                    d => !d.app_governors || !d.app_governors.some(a => a.package === pkg));
-                await refreshAppList();
-                toast('✅ Removed: ' + pkg);
-            } else {
-                toast('❌ Failed to remove: ' + pkg);
-                if (btn) { btn.disabled = false; btn.textContent = '×'; }
-            }
-        }
-
-        // ── Log ──────────────────────────────────────────────
-        async function refreshLog() {
-            try {
-                const r = await fetch(
-                    `http://127.0.0.1:${HTTP_PORT}/log.txt?_=${Date.now()}`,
-                    { cache: 'no-store' }
-                );
-                const text = await r.text();
-                const container = document.getElementById('log-container');
-                const lines = text.split('\n').filter(l => l.trim());
-                if (lines.length > 0) {
-                    container.innerHTML = lines.slice(-80).map(l =>
-                        '<div class="log-entry">' + escapeHtml(l) + '</div>'
-                    ).join('');
-                    container.scrollTop = container.scrollHeight;
-                } else {
-                    container.innerHTML = '<div class="log-entry">No logs</div>';
-                }
-            } catch(e) {
-                console.warn('refreshLog', e.message);
-            }
-        }
-
-        function clearLogDisplay() {
-            document.getElementById('log-container').innerHTML = '<div class="log-entry">Cleared</div>';
-        }
-
-        // ── Event listeners ──────────────────────────────────
-        function initEventListeners() {
-            document.getElementById('btn-detect').addEventListener('click', detectCurrentApp);
-            document.getElementById('btn-refresh-games').addEventListener('click', refreshGameList);
-            document.getElementById('btn-add-game').addEventListener('click', addGame);
-            document.getElementById('btn-add-app').addEventListener('click', addAppGovernor);
-            document.getElementById('btn-refresh-apps').addEventListener('click', refreshAppList);
-            document.getElementById('btn-refresh-log').addEventListener('click', refreshLog);
-            document.getElementById('btn-clear-log').addEventListener('click', clearLogDisplay);
-            document.getElementById('game-package-input').addEventListener('keypress', e => {
-                if (e.key === 'Enter') addGame();
-            });
-            document.getElementById('app-package-input').addEventListener('keypress', e => {
-                if (e.key === 'Enter') addAppGovernor();
-            });
-        }
-
-        // ── Init ─────────────────────────────────────────────
-        async function initialize() {
-            initTabs();
-            initGovernorSelect();
-            initEventListeners();
-
-            await Promise.all([
-                updateStatus(),
-                updateDeviceInfo(),
-                updateGovernorSettings(),
-                refreshGameList(),
-                refreshAppList(),
-                refreshLog()
-            ]);
-
-            // Polling status setiap 2 detik
-            setInterval(updateStatus, 2000);
-            // Polling log setiap 5 detik kalau tab log aktif
-            setInterval(() => {
-                if (document.getElementById('tab-log').classList.contains('active'))
-                    refreshLog();
-            }, 5000);
-        }
-
-        document.readyState === 'loading'
-            ? document.addEventListener('DOMContentLoaded', initialize)
-            : initialize();
-    </script>
+if (document.readyState === 'loading')
+    document.addEventListener('DOMContentLoaded', init);
+else
+    init();
+</script>
 </body>
 </html>
