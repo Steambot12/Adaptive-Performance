@@ -1,6 +1,6 @@
 id=adaptive_performance
 name=Adaptive Performance
-version=1.1
-versionCode=50
+version=1.2
+versionCode=51
 author=Steambot12
-description=Adaptive Performance was created so that the system can automatically detect the games we open and will change the CPU governor to improve gaming performance.
+description=Adaptive Performance - Auto CPU governor switching based on foreground app. Supports per-app governor, thermal protection, and game list management.
