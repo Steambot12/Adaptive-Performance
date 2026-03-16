@@ -1,603 +1,701 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>&#9889; Adaptive Performance</title>
-<style>
-:root{
-  --primary:#6750A4;
-  --surface:#1C1B1F;
-  --on-surface:#E6E1E5;
-  --on-sv:#CAC4CF;
-  --err:#F2B8B5;
-  --ok:#A8E6A3;
-}
-*{margin:0;padding:0;box-sizing:border-box}
-body{
-  font-family:'Roboto',sans-serif;
-  background:linear-gradient(135deg,#1a1a2e 0%,#16213e 100%);
-  color:var(--on-surface);
-  min-height:100vh;
-  padding-bottom:78px;
-}
-.glass{
-  background:rgba(255,255,255,.05);
-  backdrop-filter:blur(20px);
-  border:1px solid rgba(255,255,255,.1);
-  border-radius:20px;
-  padding:18px;
-  margin:10px 14px;
-  box-shadow:0 8px 32px rgba(0,0,0,.3);
-}
-.header{
-  background:rgba(103,80,164,.2);
-  backdrop-filter:blur(20px);
-  padding:16px 20px;
-  text-align:center;
-  border-bottom:1px solid rgba(255,255,255,.1);
-  position:sticky;top:0;z-index:100;
-}
-.header h1{font-size:21px;font-weight:500}
-.header .sub{font-size:11px;color:var(--on-sv);margin-top:2px}
-.tab-content{display:none}
-.tab-content.active{display:block;animation:fi .3s ease}
-@keyframes fi{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
-.sg{
-  display:grid;grid-template-columns:repeat(2,1fr);
-  gap:9px;margin:10px 14px;
-}
-.si{
-  background:rgba(255,255,255,.05);
-  border:1px solid rgba(255,255,255,.1);
-  border-radius:16px;padding:13px;text-align:center;
-}
-.sl{font-size:11px;color:var(--on-sv);margin-bottom:5px}
-.sv{font-size:16px;font-weight:500}
-.sv.idle{color:#90CAF9}
-.sv.gaming{color:#F48FB1}
-.sv.thermal_throttle{color:#FF8A65}
-.ir{
-  display:flex;justify-content:space-between;align-items:center;
-  padding:9px 11px;
-  background:rgba(255,255,255,.03);
-  border-radius:10px;margin-bottom:7px;
-}
-.il{font-size:12px;color:var(--on-sv)}
-.iv{font-size:12px;font-weight:500}
-.sec{display:flex;align-items:center;gap:8px;margin-bottom:13px;font-size:15px;font-weight:500}
-.badge{
-  margin-left:auto;
-  background:rgba(103,80,164,.3);
-  border-radius:10px;padding:2px 9px;font-size:12px;
-}
-.btn{
-  padding:9px 18px;border:none;border-radius:12px;
-  font-size:13px;font-weight:500;cursor:pointer;
-  transition:all .2s;
-  background:rgba(103,80,164,.3);
-  color:var(--on-surface);
-  border:1px solid rgba(255,255,255,.1);
-}
-.btn:hover:not(:disabled){background:rgba(103,80,164,.5);transform:translateY(-1px)}
-.btn:disabled{opacity:.4;cursor:not-allowed}
-.btn-p{background:var(--primary);color:#fff;border:none}
-.btn-p:hover:not(:disabled){background:#7965af}
-.btn-sm{padding:6px 13px;font-size:11px}
-.btn-d{background:rgba(242,184,181,.15);color:var(--err);border:1px solid rgba(242,184,181,.25)}
-.btn-d:hover:not(:disabled){background:rgba(242,184,181,.35)}
-input[type=text],select{
-  width:100%;padding:10px 13px;
-  border-radius:12px;
-  background:rgba(255,255,255,.06);
-  border:1px solid rgba(255,255,255,.15);
-  color:var(--on-surface);font-size:13px;margin:5px 0;
-}
-select option{background:#1C1B1F}
-.rbtns{display:flex;gap:7px;margin:7px 0;flex-wrap:wrap}
-.rbtns .btn{flex:1;min-width:100px}
-.list{display:grid;gap:7px;margin-top:10px}
-.li{
-  display:flex;align-items:center;gap:7px;
-  padding:9px 11px;
-  background:rgba(255,255,255,.03);
-  border:1px solid rgba(255,255,255,.06);
-  border-radius:11px;
-}
-.lp{font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.ls{font-size:11px;color:var(--on-sv);margin-top:2px}
-.logbox{
-  background:rgba(0,0,0,.35);border-radius:11px;
-  padding:12px;height:370px;overflow-y:auto;
-  font-family:'Courier New',monospace;font-size:11px;line-height:1.6;
-}
-.ll{padding:1px 0;border-bottom:1px solid rgba(255,255,255,.04);color:var(--on-sv)}
-.bnav{
-  position:fixed;bottom:0;left:0;right:0;
-  display:flex;justify-content:space-around;
-  background:rgba(18,18,26,.97);
-  backdrop-filter:blur(20px);
-  border-top:1px solid rgba(255,255,255,.1);
-  padding:9px 0 17px;z-index:1000;
-}
-.ni{
-  display:flex;flex-direction:column;align-items:center;gap:2px;
-  cursor:pointer;padding:5px 16px;border-radius:13px;
-  transition:.2s;color:var(--on-sv);
-}
-.ni.active{background:rgba(103,80,164,.2);color:var(--primary)}
-.ni-icon{font-size:22px}
-.ni-lbl{font-size:11px;font-weight:500}
-.ibox{
-  background:rgba(103,80,164,.1);
-  border:1px solid rgba(103,80,164,.3);
-  border-radius:9px;padding:9px 11px;
-  margin:7px 0;font-size:11px;
-  color:var(--on-sv);line-height:1.5;
-}
-.empty{text-align:center;padding:28px;color:var(--on-sv);font-size:13px}
-#toast{
-  position:fixed;bottom:86px;left:50%;transform:translateX(-50%);
-  background:rgba(28,28,40,.97);color:#fff;
-  padding:10px 20px;border-radius:22px;font-size:13px;
-  z-index:9999;box-shadow:0 4px 20px rgba(0,0,0,.5);
-  transition:opacity .3s;white-space:nowrap;pointer-events:none;opacity:0;
-}
-#toast.show{opacity:1}
-.dot{width:7px;height:7px;border-radius:50%;display:inline-block;margin-right:5px}
-.dot-ok{background:#A8E6A3}.dot-err{background:#F2B8B5}
-::-webkit-scrollbar{width:5px}
-::-webkit-scrollbar-thumb{background:rgba(103,80,164,.5);border-radius:3px}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>&#9889; Adaptive Performance</title>
+    <style>
+        :root {
+            --primary: #6750A4;
+            --primary-container: #EADDFF;
+            --on-primary: #FFFFFF;
+            --secondary: #625B71;
+            --surface: #1C1B1F;
+            --on-surface: #E6E1E5;
+            --on-surface-variant: #CAC4CF;
+            --error: #F2B8B5;
+            --success: #A8E6A3;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: var(--on-surface);
+            min-height: 100vh;
+            padding-bottom: 80px;
+        }
+        .glass-card {
+            background: rgba(255,255,255,0.05);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            padding: 20px;
+            margin: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+        .header {
+            background: rgba(103,80,164,0.2);
+            backdrop-filter: blur(20px);
+            padding: 20px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            position: sticky; top: 0; z-index: 100;
+        }
+        .header h1 { font-size: 24px; font-weight: 500; margin-bottom: 4px; }
+        .header .subtitle { font-size: 12px; color: var(--on-surface-variant); }
+        .tab-content { display: none; animation: fadeIn 0.3s ease; }
+        .tab-content.active { display: block; }
+        @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+        .status-grid {
+            display: grid; grid-template-columns: repeat(2, 1fr);
+            gap: 12px; margin: 16px;
+        }
+        .status-item {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px; padding: 16px; text-align: center;
+        }
+        .status-label { font-size: 12px; color: var(--on-surface-variant); margin-bottom: 8px; }
+        .status-value { font-size: 18px; font-weight: 500; }
+        .status-value.idle { color: #90CAF9; }
+        .status-value.gaming { color: #F48FB1; }
+        .status-value.thermal_throttle { color: #FF8A65; }
+        .info-grid { display: grid; gap: 12px; }
+        .info-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px; background: rgba(255,255,255,0.03); border-radius: 12px;
+        }
+        .info-label { font-size: 14px; color: var(--on-surface-variant); }
+        .info-value { font-size: 14px; font-weight: 500; }
+        .section-header {
+            display: flex; align-items: center; gap: 8px;
+            margin-bottom: 16px; font-size: 18px; font-weight: 500;
+        }
+        .badge {
+            display: inline-block; padding: 4px 12px; border-radius: 12px;
+            font-size: 12px; font-weight: 500; background: rgba(103,80,164,0.3);
+            margin-left: auto;
+        }
+        .btn {
+            padding: 12px 24px; border: none; border-radius: 12px;
+            font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.3s ease;
+            background: rgba(103,80,164,0.3); color: var(--on-surface);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .btn:hover:not(:disabled) { background: rgba(103,80,164,0.5); transform: translateY(-2px); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-primary { background: var(--primary); color: var(--on-primary); border: none; }
+        .btn-primary:hover:not(:disabled) { background: #7965af; }
+        .btn-small { padding: 8px 16px; font-size: 12px; }
+        .btn-remove {
+            padding: 6px 12px; font-size: 11px;
+            background: rgba(242,184,181,0.2); color: var(--error);
+            border: 1px solid rgba(242,184,181,0.3);
+        }
+        .btn-remove:hover:not(:disabled) { background: rgba(242,184,181,0.4); }
+        select, input[type="text"] {
+            width: 100%; padding: 12px; border-radius: 12px;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: var(--on-surface); font-size: 14px; margin: 8px 0;
+        }
+        select option { background: #1C1B1F; }
+        .action-buttons { display: flex; gap: 8px; margin: 12px 0; flex-wrap: wrap; }
+        .action-buttons .btn { flex: 1; min-width: 120px; }
+        .game-list, .app-list { display: grid; gap: 8px; margin-top: 12px; }
+        .game-item, .app-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px; background: rgba(255,255,255,0.03);
+            border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);
+        }
+        .game-name { font-size: 13px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .app-info { flex: 1; overflow: hidden; }
+        .app-package { font-size: 13px; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .app-governor { font-size: 11px; color: var(--on-surface-variant); }
+        .log-container {
+            background: rgba(0,0,0,0.3); border-radius: 12px; padding: 16px;
+            height: 400px; overflow-y: auto;
+            font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.6;
+        }
+        .log-entry { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--on-surface-variant); }
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0;
+            display: flex; justify-content: space-around;
+            background: rgba(28,27,31,0.97); backdrop-filter: blur(20px);
+            border-top: 1px solid rgba(255,255,255,0.1);
+            padding: 12px 0 20px; z-index: 1000;
+        }
+        .nav-item {
+            display: flex; flex-direction: column; align-items: center; gap: 4px;
+            cursor: pointer; padding: 8px 20px; border-radius: 16px;
+            transition: all 0.3s; color: var(--on-surface-variant);
+        }
+        .nav-item.active { background: rgba(103,80,164,0.2); color: var(--primary); }
+        .nav-icon { font-size: 24px; }
+        .nav-label { font-size: 12px; font-weight: 500; }
+        .info-box {
+            background: rgba(103,80,164,0.1); border: 1px solid rgba(103,80,164,0.3);
+            border-radius: 12px; padding: 12px; margin: 12px 0;
+            font-size: 12px; color: var(--on-surface-variant); line-height: 1.5;
+        }
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--on-surface-variant); }
+        #toast {
+            position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+            background: rgba(28,28,40,0.97); color: #fff;
+            padding: 10px 20px; border-radius: 22px; font-size: 13px;
+            z-index: 9999; box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            opacity: 0; transition: opacity 0.3s; pointer-events: none; white-space: nowrap;
+        }
+        #toast.show { opacity: 1; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-thumb { background: rgba(103,80,164,0.5); border-radius: 4px; }
+    </style>
 </head>
 <body>
 
 <div class="header">
-  <h1>&#9889; Adaptive Performance</h1>
-  <div class="sub">v1.2 by Steambot12</div>
+    <h1>&#9889; Adaptive Performance</h1>
+    <div class="subtitle">v1.2 &#8226; by Steambot12</div>
 </div>
 
 <div id="toast"></div>
 
-<!-- MAIN -->
+<!-- Tab Main -->
 <div id="tab-main" class="tab-content active">
-  <div class="sg">
-    <div class="si"><div class="sl">Mode</div><div class="sv idle" id="mode">IDLE</div></div>
-    <div class="si"><div class="sl">CPU Governor</div><div class="sv" id="governor">--</div></div>
-    <div class="si"><div class="sl">Foreground App</div><div class="sv" id="fg-app" style="font-size:11px">--</div></div>
-    <div class="si"><div class="sl">Temperature</div><div class="sv" id="temperature">--</div></div>
-  </div>
-  <div class="glass">
-    <div class="sec"><span>&#9881;</span>Device Info</div>
-    <div class="ir"><span class="il">Device</span><span class="iv" id="d-device">--</span></div>
-    <div class="ir"><span class="il">Kernel</span><span class="iv" id="d-kernel" style="font-size:10px">--</span></div>
-    <div class="ir"><span class="il">CPU Cores</span><span class="iv" id="d-cores">--</span></div>
-    <div class="ir"><span class="il">Chipset</span><span class="iv" id="d-chipset">--</span></div>
-    <div class="ir"><span class="il">Idle Governor</span><span class="iv" id="d-idle-gov">--</span></div>
-    <div class="ir"><span class="il">Gaming Governor</span><span class="iv" id="d-gaming-gov">--</span></div>
-  </div>
+    <div class="status-grid">
+        <div class="status-item"><div class="status-label">Mode</div><div class="status-value idle" id="mode">IDLE</div></div>
+        <div class="status-item"><div class="status-label">CPU Governor</div><div class="status-value" id="governor">--</div></div>
+        <div class="status-item"><div class="status-label">Foreground App</div><div class="status-value" id="foreground-app" style="font-size:11px">--</div></div>
+        <div class="status-item"><div class="status-label">Temperature</div><div class="status-value" id="temperature">--</div></div>
+    </div>
+    <div class="glass-card">
+        <div class="section-header"><span>&#9881;</span> Device Info</div>
+        <div class="info-grid">
+            <div class="info-item"><span class="info-label">Device</span><span class="info-value" id="device">--</span></div>
+            <div class="info-item"><span class="info-label">Kernel</span><span class="info-value" id="kernel" style="font-size:11px">--</span></div>
+            <div class="info-item"><span class="info-label">CPU Cores</span><span class="info-value" id="cpu-cores">--</span></div>
+            <div class="info-item"><span class="info-label">Chipset</span><span class="info-value" id="chipset">--</span></div>
+            <div class="info-item"><span class="info-label">Idle Governor</span><span class="info-value" id="idle-gov-main">--</span></div>
+        </div>
+    </div>
 </div>
 
-<!-- TUNING -->
+<!-- Tab Tuning -->
 <div id="tab-tuning" class="tab-content">
-  <div class="glass">
-    <div class="sec"><span>&#9881;</span>CPU Governor</div>
-    <div class="ir"><span class="il">Idle Governor</span><span class="iv" id="t-idle-gov">--</span></div>
-    <div class="ir"><span class="il">Gaming Governor (aktif)</span><span class="iv" id="t-gaming-gov">--</span></div>
-    <select id="gov-sel"><option value="">-- Select Gaming Governor --</option></select>
-    <button class="btn btn-p" id="btn-set-gov" style="width:100%;margin-top:8px">&#10004; Apply Governor</button>
-    <div class="ibox">&#8505; Perubahan langsung diterapkan jika game sedang aktif.</div>
-  </div>
-  <div class="glass">
-    <div class="sec"><span>&#9670;</span>Game Package Manager<span class="badge" id="gc">0</span></div>
-    <div class="rbtns">
-      <button class="btn btn-sm" id="btn-detect">&#8981; Detect App</button>
-      <button class="btn btn-sm" id="btn-rgames">&#8635; Refresh</button>
+    <div class="glass-card">
+        <div class="section-header"><span>&#9881;</span> CPU Governor</div>
+        <div class="info-grid">
+            <div class="info-item"><span class="info-label">Idle Governor</span><span class="info-value" id="idle-governor">--</span></div>
+            <div class="info-item"><span class="info-label">Gaming Governor</span><span class="info-value" id="gaming-governor">--</span></div>
+        </div>
+        <select id="governor-select">
+            <option value="">-- Select Gaming Governor --</option>
+        </select>
+        <button class="btn btn-primary" id="btn-set-gov" style="width:100%;margin-top:8px">&#10004; Apply Governor</button>
+        <div class="info-box">&#8505; Perubahan akan diterapkan langsung jika game sedang aktif.</div>
     </div>
-    <input type="text" id="game-input" placeholder="com.example.game">
-    <button class="btn btn-p" id="btn-add-game" style="width:100%;margin-top:6px">+ Add Game Package</button>
-    <div id="game-list" class="list"><div class="empty">Loading...</div></div>
-  </div>
-  <div class="glass">
-    <div class="sec"><span>&#9672;</span>Per-App Governor<span class="badge" id="ac">0</span></div>
-    <input type="text" id="app-input" placeholder="com.example.app">
-    <select id="app-gov-sel"><option value="">-- Select Governor --</option></select>
-    <button class="btn btn-p" id="btn-add-app" style="width:100%;margin-top:6px">&#10004; Add App Governor</button>
-    <div class="ibox">&#8505; Per-App tidak bisa overlap dengan daftar game.</div>
-    <div class="rbtns" style="margin-top:10px">
-      <button class="btn btn-sm" id="btn-rapps">&#8635; Refresh App List</button>
+
+    <div class="glass-card">
+        <div class="section-header"><span>&#9670;</span> Game Packages <span class="badge" id="game-count">0</span></div>
+        <div class="action-buttons">
+            <button class="btn btn-small" id="btn-detect">&#8981; Detect App</button>
+            <button class="btn btn-small" id="btn-refresh-games">&#8635; Refresh</button>
+        </div>
+        <input type="text" id="game-package-input" placeholder="com.example.game">
+        <button class="btn btn-primary" id="btn-add-game" style="width:100%;margin-top:8px">+ Add Game</button>
+        <div id="game-list" class="game-list"><div class="empty-state">Loading...</div></div>
     </div>
-    <div id="app-list" class="list"><div class="empty">Belum ada custom governor</div></div>
-  </div>
+
+    <div class="glass-card">
+        <div class="section-header"><span>&#9672;</span> Per-App Governor <span class="badge" id="app-count">0</span></div>
+        <input type="text" id="app-package-input" placeholder="com.example.app">
+        <select id="app-governor-select"><option value="">-- Select Governor --</option></select>
+        <button class="btn btn-primary" id="btn-add-app" style="width:100%;margin-top:8px">&#10004; Add App Governor</button>
+        <div class="info-box">&#8505; Per-App tidak bisa overlap dengan daftar game.</div>
+        <div class="action-buttons" style="margin-top:12px">
+            <button class="btn btn-small" id="btn-refresh-apps">&#8635; Refresh App List</button>
+        </div>
+        <div id="app-list" class="app-list"><div class="empty-state">Belum ada custom governor</div></div>
+    </div>
 </div>
 
-<!-- LOG -->
+<!-- Tab Log -->
 <div id="tab-log" class="tab-content">
-  <div class="glass">
-    <div class="sec"><span>&#9776;</span>Live Log</div>
-    <div class="rbtns">
-      <button class="btn btn-sm" id="btn-rlog">&#8635; Refresh</button>
-      <button class="btn btn-sm" id="btn-clog">&#215; Clear</button>
+    <div class="glass-card">
+        <div class="section-header"><span>&#9776;</span> Live Log</div>
+        <div class="action-buttons">
+            <button class="btn btn-small" id="btn-refresh-log">&#8635; Refresh</button>
+            <button class="btn btn-small" id="btn-clear-log">&#215; Clear</button>
+        </div>
+        <div class="log-container" id="log-container"><div class="log-entry">Initializing...</div></div>
     </div>
-    <div class="logbox" id="logbox"><div class="ll">Initializing...</div></div>
-  </div>
 </div>
 
 <!-- Bottom Nav -->
-<div class="bnav">
-  <div class="ni active" data-tab="main"><div class="ni-icon">&#8962;</div><div class="ni-lbl">Main</div></div>
-  <div class="ni" data-tab="tuning"><div class="ni-icon">&#9881;</div><div class="ni-lbl">Tuning</div></div>
-  <div class="ni" data-tab="log"><div class="ni-icon">&#9776;</div><div class="ni-lbl">Log</div></div>
+<div class="bottom-nav">
+    <div class="nav-item active" data-tab="main"><div class="nav-icon">&#8962;</div><div class="nav-label">Main</div></div>
+    <div class="nav-item" data-tab="tuning"><div class="nav-icon">&#9881;</div><div class="nav-label">Tuning</div></div>
+    <div class="nav-item" data-tab="log"><div class="nav-icon">&#9776;</div><div class="nav-label">Log</div></div>
 </div>
 
 <script>
 'use strict';
-var HTTP=9876, API=9877, TOAST_T=null;
 
-function esc(s){
-  var d=document.createElement('div'); d.textContent=s; return d.innerHTML;
-}
-function toast(msg,ms){
-  ms=ms||2800;
-  var el=document.getElementById('toast');
-  el.textContent=msg; el.classList.add('show');
-  clearTimeout(TOAST_T);
-  TOAST_T=setTimeout(function(){el.classList.remove('show');},ms);
+var API_PORT = 9877;
+var lastGovernorChangeTime = 0;
+var toastTimer = null;
+
+function escapeHtml(text) {
+    var d = document.createElement('div');
+    d.textContent = text;
+    return d.innerHTML;
 }
 
-/* ===================== FETCH JSON =====================
-   Baca file .json dari HTTP server (port 9876)
-   Coba dengan cache-busting agar selalu fresh
-*/
-function fetchJSON(fn){
-  var url='http://127.0.0.1:'+HTTP+'/'+fn+'?_='+Date.now();
-  return new Promise(function(resolve){
-    var x=new XMLHttpRequest();
-    x.open('GET',url,true);
-    x.timeout=5000;
-    x.onload=function(){
-      if(x.status>=200&&x.status<300){
-        try{resolve(JSON.parse(x.responseText));}
-        catch(e){console.warn('JSON parse',fn,e.message);resolve(null);}
-      }else{
-        console.warn('HTTP',x.status,fn);
-        resolve(null);
-      }
-    };
-    x.onerror=function(){console.warn('net err',fn);resolve(null);};
-    x.ontimeout=function(){console.warn('timeout',fn);resolve(null);};
-    x.send();
-  });
+function showToast(msg, ms) {
+    ms = ms || 2500;
+    var el = document.getElementById('toast');
+    el.textContent = msg;
+    el.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function() { el.classList.remove('show'); }, ms);
 }
 
-/* ===================== API CALL =======================
-   Kirim perintah ke API server (port 9877)
-*/
-function apiCall(action,params){
-  params=params||{};
-  return new Promise(function(resolve){
-    var qs='action='+encodeURIComponent(action);
-    var keys=Object.keys(params);
-    for(var i=0;i<keys.length;i++){
-      qs+='&'+encodeURIComponent(keys[i])+'='+encodeURIComponent(params[keys[i]]);
-    }
-    qs+='&_t='+Date.now();
-    var url='http://127.0.0.1:'+API+'/?'+qs;
-    var x=new XMLHttpRequest();
-    x.open('GET',url,true);
-    x.timeout=7000;
-    x.onload=function(){
-      try{resolve(JSON.parse(x.responseText));}
-      catch(e){resolve({status:'error',message:'Parse error'});}
-    };
-    x.onerror=function(){resolve({status:'error',message:'Network error'});};
-    x.ontimeout=function(){resolve({status:'error',message:'Timeout'});};
-    x.send();
-  });
-}
-
-/* Poll file sampai kondisi terpenuhi atau timeout */
-function pollUntil(fn,check,tries,ms){
-  tries=tries||12; ms=ms||600;
-  return new Promise(function(resolve){
-    var n=0;
-    function step(){
-      setTimeout(function(){
-        fetchJSON(fn).then(function(d){
-          if(d&&check(d)){resolve(d);return;}
-          n++; if(n<tries) step(); else resolve(null);
-        });
-      },ms);
-    }
-    step();
-  });
-}
-
-/* ===================== TABS ========================= */
-function initTabs(){
-  document.querySelectorAll('.ni').forEach(function(item){
-    item.addEventListener('click',function(){
-      var tab=this.dataset.tab;
-      document.querySelectorAll('.tab-content').forEach(function(t){t.classList.remove('active');});
-      document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active');});
-      document.getElementById('tab-'+tab).classList.add('active');
-      this.classList.add('active');
-      if(tab==='log') refreshLog();
-      if(tab==='tuning'){loadGovernorUI();refreshGameList();refreshAppList();}
-    });
-  });
-}
-
-/* ===================== MAIN ========================= */
-function updateStatus(){
-  fetchJSON('dynamic.json').then(function(d){
-    if(!d) return;
-    var state=d.state||'idle';
-    var mel=document.getElementById('mode');
-    mel.textContent=state.toUpperCase().replace('_',' ');
-    mel.className='sv '+state;
-    document.getElementById('governor').textContent=d.governor||'--';
-    var fg=d.foreground||'';
-    var fe=document.getElementById('fg-app');
-    if(fg&&fg!=='unknown'){
-      fe.textContent=fg.length>26?fg.substring(0,23)+'...':fg;
-      fe.title=fg;
-    }else{fe.textContent='--';}
-    var temp=parseInt(d.temperature)||0;
-    document.getElementById('temperature').textContent=
-      (temp>1000&&temp<200000)?(temp/1000).toFixed(1)+'\u00b0C':'--';
-    document.getElementById('d-gaming-gov').textContent=d.governor||'--';
-  });
-}
-
-function loadDeviceInfo(){
-  fetchJSON('static.json').then(function(d){
-    if(!d){console.warn('static.json null');return;}
-    document.getElementById('d-device').textContent=d.device||'--';
-    document.getElementById('d-kernel').textContent=d.kernel||'--';
-    document.getElementById('d-cores').textContent=d.cores||'--';
-    document.getElementById('d-chipset').textContent=d.chipset||'--';
-    document.getElementById('d-idle-gov').textContent=d.default_governor||'--';
-  });
-}
-
-/* ===================== TUNING - GOVERNOR ============ */
-function loadGovernorUI(){
-  fetchJSON('config.json').then(function(d){
-    if(!d){
-      toast('\u26a0 Cannot read config - coba refresh');
-      return;
-    }
-    document.getElementById('t-idle-gov').textContent  =d.default_idle||'--';
-    document.getElementById('t-gaming-gov').textContent=d.gaming_governor||'--';
-    document.getElementById('d-gaming-gov').textContent=d.gaming_governor||'--';
-
-    var gs=document.getElementById('gov-sel');
-    var as=document.getElementById('app-gov-sel');
-    var prev=gs.value;
-
-    if(d.available_governors&&d.available_governors.length>0){
-      gs.innerHTML='<option value="">-- Select Gaming Governor --</option>';
-      as.innerHTML='<option value="">-- Select Governor --</option>';
-      d.available_governors.forEach(function(g){
-        gs.add(new Option(g,g));
-        as.add(new Option(g,g));
-      });
-      gs.value=d.gaming_governor||prev;
-    }
-  });
-}
-
-function initGovernorBtn(){
-  document.getElementById('btn-set-gov').addEventListener('click',function(){
-    var gov=document.getElementById('gov-sel').value;
-    if(!gov){toast('\u274c Pilih governor dulu');return;}
-    var btn=this;
-    btn.disabled=true; btn.textContent='\u23f3 Applying...';
-    toast('\u23f3 Setting: '+gov);
-    apiCall('set_governor',{governor:gov}).then(function(res){
-      if(res.status==='success'){
-        pollUntil('config.json',function(d){return d.gaming_governor===gov;})
-          .then(function(d){
-            if(d){
-              document.getElementById('t-gaming-gov').textContent=gov;
-              document.getElementById('d-gaming-gov').textContent=gov;
+// =====================================================================
+// fetchJSON: pakai relative path (sama seperti v1.1 yang terbukti stabil)
+// httpd di port 9876 serve file ini, jadi relative path selalu berhasil
+// =====================================================================
+function fetchJSON(filename, forceRefresh) {
+    var ts = Date.now() + (forceRefresh ? Math.random() * 1000 : 0);
+    return new Promise(function(resolve) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', '/' + filename + '?_=' + ts, true);
+        if (forceRefresh) {
+            xhr.setRequestHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            xhr.setRequestHeader('Pragma', 'no-cache');
+        }
+        xhr.timeout = 5000;
+        xhr.onload = function() {
+            if (xhr.status >= 200 && xhr.status < 300) {
+                try { resolve(JSON.parse(xhr.responseText)); }
+                catch(e) { console.warn('JSON parse error:', filename, e); resolve(null); }
+            } else {
+                console.warn('HTTP error:', xhr.status, filename);
+                resolve(null);
             }
-            toast('\u2705 Governor set: '+gov);
-          });
-      }else{
-        toast('\u274c '+(res.message||'Gagal'));
-        loadGovernorUI();
-      }
-      btn.disabled=false; btn.textContent='\u2714 Apply Governor';
+        };
+        xhr.onerror = function() { console.warn('Network error:', filename); resolve(null); };
+        xhr.ontimeout = function() { console.warn('Timeout:', filename); resolve(null); };
+        xhr.send();
     });
-  });
 }
 
-/* ===================== GAME LIST ==================== */
-function refreshGameList(){
-  fetchJSON('games.json').then(function(d){
-    var el=document.getElementById('game-list');
-    if(!d){el.innerHTML='<div class="empty">&#9888; Load error</div>';return;}
-    document.getElementById('gc').textContent=d.count||0;
-    if(d.games&&d.games.length>0){
-      el.innerHTML='';
-      d.games.forEach(function(pkg){
-        var i=document.createElement('div'); i.className='li';
-        i.innerHTML='<span class="lp">'+esc(pkg)+'</span>'+
-          '<button class="btn btn-sm btn-d" onclick="removeGame(\''+(esc(pkg)+'\',this)">')+'&#215; Remove</button>';
-        el.appendChild(i);
-      });
-    }else{el.innerHTML='<div class="empty">No game packages</div>';}
-  });
+// =====================================================================
+// apiCall: kirim ke API server port 9877 (no-cors via fetch, sama seperti v1.1)
+// Tidak perlu baca response body karena pola v1.1 terbukti berhasil
+// =====================================================================
+function apiCall(action, params, retries) {
+    params = params || {};
+    retries = (retries !== undefined) ? retries : 2;
+    return new Promise(function(resolve) {
+        var qs = 'action=' + encodeURIComponent(action);
+        var keys = Object.keys(params);
+        for (var i = 0; i < keys.length; i++) {
+            qs += '&' + encodeURIComponent(keys[i]) + '=' + encodeURIComponent(params[keys[i]]);
+        }
+        qs += '&_t=' + Date.now();
+        var url = 'http://127.0.0.1:' + API_PORT + '/?' + qs;
+
+        function attempt(n) {
+            fetch(url, {
+                method: 'GET',
+                mode: 'no-cors',
+                cache: 'no-cache'
+            }).then(function() {
+                resolve({ status: 'success' });
+            }).catch(function(err) {
+                if (n > 0) {
+                    setTimeout(function() { attempt(n - 1); }, 400);
+                } else {
+                    console.warn('API error:', action, err);
+                    resolve({ status: 'error', message: err.message });
+                }
+            });
+        }
+        attempt(retries);
+    });
 }
 
-function addGame(){
-  var inp=document.getElementById('game-input');
-  var pkg=inp.value.trim();
-  if(!pkg){toast('\u274c Masukkan package name');return;}
-  if(!/^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)+$/.test(pkg)){
-    toast('\u274c Format salah. Contoh: com.example.game');return;
-  }
-  var btn=document.getElementById('btn-add-game');
-  btn.disabled=true; btn.textContent='\u23f3 Adding...';
-  apiCall('add',{pkg:pkg}).then(function(res){
-    if(res.status==='success'){
-      inp.value='';
-      pollUntil('games.json',function(d){return d.games&&d.games.indexOf(pkg)!==-1;})
-        .then(function(){refreshGameList();});
-      toast('\u2705 Added: '+pkg);
-    }else{toast('\u274c '+(res.message||'Gagal'));}
-    btn.disabled=false; btn.textContent='+ Add Game Package';
-  });
+// =====================================================================
+// TABS
+// =====================================================================
+function initTabs() {
+    document.querySelectorAll('.nav-item').forEach(function(item) {
+        item.addEventListener('click', function() {
+            var tab = this.getAttribute('data-tab');
+            document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
+            document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
+            document.getElementById('tab-' + tab).classList.add('active');
+            this.classList.add('active');
+            if (tab === 'log') refreshLog();
+            if (tab === 'tuning') {
+                updateGovernorSettings(true);
+                refreshGameList();
+                refreshAppList();
+            }
+        });
+    });
 }
 
-function removeGame(pkg,btn){
-  if(!confirm('Hapus "'+pkg+'" dari daftar game?')) return;
-  if(btn){btn.disabled=true;btn.textContent='...';}
-  apiCall('remove',{pkg:pkg}).then(function(res){
-    if(res.status==='success'){
-      pollUntil('games.json',function(d){return !d.games||d.games.indexOf(pkg)===-1;})
-        .then(function(){refreshGameList();});
-      toast('\u2705 Removed: '+pkg);
-    }else{
-      toast('\u274c Gagal hapus');
-      if(btn){btn.disabled=false;btn.textContent='\u00d7 Remove';}
+// =====================================================================
+// STATUS UPDATE
+// =====================================================================
+function updateStatus(forceRefresh) {
+    fetchJSON('dynamic.json', forceRefresh).then(function(data) {
+        if (!data) return;
+        var state = data.state || 'idle';
+        var modeEl = document.getElementById('mode');
+        modeEl.textContent = state.toUpperCase().replace('_', ' ');
+        modeEl.className = 'status-value ' + state;
+        document.getElementById('governor').textContent = data.governor || '--';
+        var fg = data.foreground || '';
+        var fgEl = document.getElementById('foreground-app');
+        if (fg && fg !== 'unknown' && fg.trim().length > 0) {
+            fgEl.textContent = fg.length > 25 ? fg.substring(0, 22) + '...' : fg;
+            fgEl.title = fg;
+        } else {
+            fgEl.textContent = 'No app';
+        }
+        var temp = parseInt(data.temperature) || 0;
+        document.getElementById('temperature').textContent =
+            (temp > 1000 && temp < 200000) ? (temp / 1000).toFixed(1) + '\u00b0C' : '--';
+    });
+}
+
+function updateDeviceInfo() {
+    fetchJSON('static.json').then(function(data) {
+        if (!data) return;
+        document.getElementById('device').textContent = data.device || '--';
+        document.getElementById('kernel').textContent = data.kernel || '--';
+        document.getElementById('cpu-cores').textContent = data.cores || '--';
+        document.getElementById('chipset').textContent = data.chipset || '--';
+        document.getElementById('idle-gov-main').textContent = data.default_governor || '--';
+    });
+}
+
+// =====================================================================
+// GOVERNOR SETTINGS
+// =====================================================================
+function updateGovernorSettings(forceRefresh) {
+    fetchJSON('config.json', forceRefresh).then(function(data) {
+        if (!data) {
+            showToast('\u26a0 Gagal baca config - coba refresh');
+            return;
+        }
+        document.getElementById('idle-governor').textContent = data.default_idle || '--';
+        document.getElementById('gaming-governor').textContent = data.gaming_governor || '--';
+
+        var mainSel = document.getElementById('governor-select');
+        var appSel = document.getElementById('app-governor-select');
+        var prevVal = mainSel.value;
+
+        if (data.available_governors && data.available_governors.length > 0) {
+            mainSel.innerHTML = '<option value="">-- Select Gaming Governor --</option>';
+            appSel.innerHTML = '<option value="">-- Select Governor --</option>';
+            data.available_governors.forEach(function(g) {
+                mainSel.add(new Option(g, g));
+                appSel.add(new Option(g, g));
+            });
+            mainSel.value = data.gaming_governor || prevVal;
+        }
+    });
+}
+
+function initGovernorBtn() {
+    document.getElementById('btn-set-gov').addEventListener('click', function() {
+        var gov = document.getElementById('governor-select').value;
+        if (!gov) { showToast('\u274c Pilih governor terlebih dahulu'); return; }
+
+        var btn = this;
+        btn.disabled = true;
+        btn.textContent = '\u23f3 Applying...';
+        showToast('\u23f3 Setting governor: ' + gov);
+
+        apiCall('set_governor', { governor: gov }, 2).then(function() {
+            lastGovernorChangeTime = Date.now();
+
+            // Cek config.json sampai gaming_governor berubah (poll 6x, 800ms jeda)
+            var tries = 0;
+            function poll() {
+                setTimeout(function() {
+                    fetchJSON('config.json', true).then(function(d) {
+                        if (d && d.gaming_governor === gov) {
+                            document.getElementById('gaming-governor').textContent = gov;
+                            showToast('\u2705 Gaming governor: ' + gov);
+                            btn.disabled = false;
+                            btn.textContent = '\u2714 Apply Governor';
+                        } else if (++tries < 6) {
+                            poll();
+                        } else {
+                            // Timeout - tetap update display
+                            document.getElementById('gaming-governor').textContent = gov;
+                            showToast('\u2705 Applied (verify in log)');
+                            btn.disabled = false;
+                            btn.textContent = '\u2714 Apply Governor';
+                        }
+                    });
+                }, 800);
+            }
+            poll();
+        });
+    });
+}
+
+// =====================================================================
+// GAME LIST
+// =====================================================================
+function refreshGameList() {
+    fetchJSON('games.json').then(function(data) {
+        var list = document.getElementById('game-list');
+        if (!data) { list.innerHTML = '<div class="empty-state">&#9888; Load error</div>'; return; }
+        document.getElementById('game-count').textContent = data.count || 0;
+        if (data.games && data.games.length > 0) {
+            list.innerHTML = '';
+            data.games.forEach(function(pkg) {
+                var item = document.createElement('div');
+                item.className = 'game-item';
+                var name = document.createElement('span');
+                name.className = 'game-name';
+                name.textContent = pkg;
+                var btn = document.createElement('button');
+                btn.className = 'btn btn-small btn-remove';
+                btn.textContent = '\u00d7 Remove';
+                btn.onclick = function() { removeGame(pkg, btn); };
+                item.appendChild(name);
+                item.appendChild(btn);
+                list.appendChild(item);
+            });
+        } else {
+            list.innerHTML = '<div class="empty-state">No game packages</div>';
+        }
+    });
+}
+
+function addGame() {
+    var input = document.getElementById('game-package-input');
+    var pkg = input.value.trim();
+    if (!pkg) { showToast('\u274c Masukkan nama package'); return; }
+    if (!/^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)+$/.test(pkg)) {
+        showToast('\u274c Format salah. Contoh: com.example.game'); return;
     }
-  });
+    var btn = document.getElementById('btn-add-game');
+    btn.disabled = true; btn.textContent = '\u23f3 Adding...';
+    showToast('\u23f3 Adding: ' + pkg);
+    apiCall('add', { pkg: pkg }, 2).then(function() {
+        // Poll games.json sampai pkg muncul
+        var tries = 0;
+        function poll() {
+            setTimeout(function() {
+                fetchJSON('games.json', true).then(function(d) {
+                    if (d && d.games && d.games.indexOf(pkg) !== -1) {
+                        input.value = '';
+                        refreshGameList();
+                        showToast('\u2705 Added: ' + pkg);
+                        btn.disabled = false; btn.textContent = '+ Add Game';
+                    } else if (++tries < 8) {
+                        poll();
+                    } else {
+                        showToast('\u274c Gagal tambah (duplicate/conflict?)');
+                        btn.disabled = false; btn.textContent = '+ Add Game';
+                    }
+                });
+            }, 600);
+        }
+        poll();
+    });
 }
 
-function detectApp(){
-  fetchJSON('dynamic.json').then(function(d){
-    if(!d||!d.foreground||d.foreground==='unknown'){
-      toast('\u274c Tidak ada app terdeteksi');return;
+function removeGame(pkg, btn) {
+    if (!confirm('Hapus "' + pkg + '" dari daftar game?')) return;
+    if (btn) { btn.disabled = true; btn.textContent = '...'; }
+    apiCall('remove', { pkg: pkg }, 2).then(function() {
+        showToast('\u2705 Removed: ' + pkg);
+        setTimeout(function() { refreshGameList(); }, 1000);
+    });
+}
+
+function detectCurrentApp() {
+    fetchJSON('dynamic.json').then(function(data) {
+        if (!data || !data.foreground || data.foreground === 'unknown') {
+            showToast('\u274c Tidak ada app terdeteksi'); return;
+        }
+        document.getElementById('game-package-input').value = data.foreground;
+        showToast('\u2713 Detected: ' + data.foreground);
+    });
+}
+
+// =====================================================================
+// PER-APP GOVERNOR
+// =====================================================================
+function refreshAppList() {
+    fetchJSON('app_governors.json').then(function(data) {
+        var list = document.getElementById('app-list');
+        if (!data) { list.innerHTML = '<div class="empty-state">&#9888; Load error</div>'; return; }
+        document.getElementById('app-count').textContent = data.count || 0;
+        if (data.app_governors && data.app_governors.length > 0) {
+            list.innerHTML = '';
+            data.app_governors.forEach(function(app) {
+                var item = document.createElement('div');
+                item.className = 'app-item';
+                var info = document.createElement('div');
+                info.className = 'app-info';
+                var pkgDiv = document.createElement('div');
+                pkgDiv.className = 'app-package';
+                pkgDiv.textContent = app.package;
+                var govDiv = document.createElement('div');
+                govDiv.className = 'app-governor';
+                govDiv.textContent = 'Governor: ' + app.governor;
+                info.appendChild(pkgDiv);
+                info.appendChild(govDiv);
+                var btn = document.createElement('button');
+                btn.className = 'btn btn-small btn-remove';
+                btn.textContent = '\u00d7';
+                (function(p, b) {
+                    b.onclick = function() { removeAppGovernor(p, b); };
+                })(app.package, btn);
+                item.appendChild(info);
+                item.appendChild(btn);
+                list.appendChild(item);
+            });
+        } else {
+            list.innerHTML = '<div class="empty-state">Belum ada custom governor</div>';
+        }
+    });
+}
+
+function addAppGovernor() {
+    var pkg = document.getElementById('app-package-input').value.trim();
+    var gov = document.getElementById('app-governor-select').value;
+    if (!pkg || !gov) { showToast('\u274c Isi package dan pilih governor'); return; }
+    if (!/^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)+$/.test(pkg)) {
+        showToast('\u274c Format package salah'); return;
     }
-    document.getElementById('game-input').value=d.foreground;
-    toast('\u2713 Detected: '+d.foreground);
-  });
+    var btn = document.getElementById('btn-add-app');
+    btn.disabled = true; btn.textContent = '\u23f3 Adding...';
+    showToast('\u23f3 Setting: ' + pkg + ' -> ' + gov);
+    apiCall('set_app_governor', { pkg: pkg, governor: gov }, 2).then(function() {
+        var tries = 0;
+        function poll() {
+            setTimeout(function() {
+                fetchJSON('app_governors.json', true).then(function(d) {
+                    var added = d && d.app_governors &&
+                        d.app_governors.some(function(a) { return a.package === pkg; });
+                    if (added) {
+                        document.getElementById('app-package-input').value = '';
+                        document.getElementById('app-governor-select').value = '';
+                        refreshAppList();
+                        showToast('\u2705 ' + pkg + ' \u2192 ' + gov);
+                        btn.disabled = false; btn.textContent = '\u2714 Add App Governor';
+                    } else if (++tries < 8) {
+                        poll();
+                    } else {
+                        showToast('\u274c Gagal (conflict game list?)');
+                        btn.disabled = false; btn.textContent = '\u2714 Add App Governor';
+                    }
+                });
+            }, 600);
+        }
+        poll();
+    });
 }
 
-/* ===================== APP GOVERNOR ================ */
-function refreshAppList(){
-  fetchJSON('app_governors.json').then(function(d){
-    var el=document.getElementById('app-list');
-    if(!d){el.innerHTML='<div class="empty">&#9888; Load error</div>';return;}
-    document.getElementById('ac').textContent=d.count||0;
-    if(d.app_governors&&d.app_governors.length>0){
-      el.innerHTML='';
-      d.app_governors.forEach(function(app){
-        var i=document.createElement('div'); i.className='li';
-        i.innerHTML=
-          '<div style="flex:1;overflow:hidden">'+
-          '<div class="lp">'+esc(app.package)+'</div>'+
-          '<div class="ls">Gov: '+esc(app.governor)+'</div></div>'+
-          '<button class="btn btn-sm btn-d" onclick="removeAppGov(\''+(esc(app.package)+'\',this)">\u00d7</button>');
-        el.appendChild(i);
-      });
-    }else{el.innerHTML='<div class="empty">Belum ada custom governor</div>';}
-  });
+function removeAppGovernor(pkg, btn) {
+    if (!confirm('Hapus governor untuk "' + pkg + '"?')) return;
+    if (btn) { btn.disabled = true; btn.textContent = '...'; }
+    apiCall('remove_app_governor', { pkg: pkg }, 2).then(function() {
+        showToast('\u2705 Removed: ' + pkg);
+        setTimeout(function() { refreshAppList(); }, 1000);
+    });
 }
 
-function addAppGov(){
-  var pkg=document.getElementById('app-input').value.trim();
-  var gov=document.getElementById('app-gov-sel').value;
-  if(!pkg||!gov){toast('\u274c Isi package dan pilih governor');return;}
-  if(!/^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)+$/.test(pkg)){
-    toast('\u274c Format package salah');return;
-  }
-  var btn=document.getElementById('btn-add-app');
-  btn.disabled=true; btn.textContent='\u23f3 Adding...';
-  apiCall('set_app_governor',{pkg:pkg,governor:gov}).then(function(res){
-    if(res.status==='success'){
-      document.getElementById('app-input').value='';
-      document.getElementById('app-gov-sel').value='';
-      pollUntil('app_governors.json',
-        function(d){return d.app_governors&&d.app_governors.some(function(a){return a.package===pkg;});}
-      ).then(function(){refreshAppList();});
-      toast('\u2705 '+pkg+' \u2192 '+gov);
-    }else{toast('\u274c '+(res.message||'Gagal / konflik game list'));}
-    btn.disabled=false; btn.textContent='\u2714 Add App Governor';
-  });
+// =====================================================================
+// LOG
+// =====================================================================
+function refreshLog() {
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', '/log.txt?_=' + Date.now(), true);
+    xhr.timeout = 5000;
+    xhr.onload = function() {
+        var container = document.getElementById('log-container');
+        var lines = xhr.responseText.split('\n').filter(function(l) { return l.trim(); });
+        if (lines.length > 0) {
+            container.innerHTML = lines.slice(-80).map(function(entry) {
+                return '<div class="log-entry">' + escapeHtml(entry) + '</div>';
+            }).join('');
+            container.scrollTop = container.scrollHeight;
+        } else {
+            container.innerHTML = '<div class="log-entry">No logs</div>';
+        }
+    };
+    xhr.onerror = function() { console.warn('Log load error'); };
+    xhr.send();
 }
 
-function removeAppGov(pkg,btn){
-  if(!confirm('Hapus governor untuk "'+pkg+'"?')) return;
-  if(btn){btn.disabled=true;btn.textContent='...';}
-  apiCall('remove_app_governor',{pkg:pkg}).then(function(res){
-    if(res.status==='success'){
-      pollUntil('app_governors.json',
-        function(d){return !d.app_governors||!d.app_governors.some(function(a){return a.package===pkg;});}
-      ).then(function(){refreshAppList();});
-      toast('\u2705 Removed: '+pkg);
-    }else{
-      toast('\u274c Gagal hapus');
-      if(btn){btn.disabled=false;btn.textContent='\u00d7';}
-    }
-  });
+// =====================================================================
+// INIT
+// =====================================================================
+function initEventListeners() {
+    document.getElementById('btn-detect').addEventListener('click', detectCurrentApp);
+    document.getElementById('btn-refresh-games').addEventListener('click', refreshGameList);
+    document.getElementById('btn-add-game').addEventListener('click', addGame);
+    document.getElementById('btn-add-app').addEventListener('click', addAppGovernor);
+    document.getElementById('btn-refresh-apps').addEventListener('click', refreshAppList);
+    document.getElementById('btn-refresh-log').addEventListener('click', refreshLog);
+    document.getElementById('btn-clear-log').addEventListener('click', function() {
+        document.getElementById('log-container').innerHTML = '<div class="log-entry">Cleared</div>';
+    });
+    document.getElementById('game-package-input').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') addGame();
+    });
+    document.getElementById('app-package-input').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') addAppGovernor();
+    });
 }
 
-/* ===================== LOG ========================= */
-function refreshLog(){
-  var x=new XMLHttpRequest();
-  x.open('GET','http://127.0.0.1:'+HTTP+'/log.txt?_='+Date.now(),true);
-  x.timeout=5000;
-  x.onload=function(){
-    var box=document.getElementById('logbox');
-    var lines=x.responseText.split('\n').filter(function(l){return l.trim();});
-    if(lines.length===0){box.innerHTML='<div class="ll">No logs yet</div>';return;}
-    box.innerHTML=lines.slice(-120).map(function(l){
-      return '<div class="ll">'+esc(l)+'</div>';
-    }).join('');
-    box.scrollTop=box.scrollHeight;
-  };
-  x.onerror=function(){console.warn('log load err');};
-  x.send();
+function initialize() {
+    initTabs();
+    initGovernorBtn();
+    initEventListeners();
+
+    updateDeviceInfo();
+    updateStatus();
+    updateGovernorSettings();
+    refreshGameList();
+    refreshAppList();
+    refreshLog();
+
+    // Polling realtime
+    setInterval(function() {
+        var timeSince = Date.now() - lastGovernorChangeTime;
+        updateStatus(timeSince < 5000 && timeSince > 0);
+    }, 2000);
+
+    setInterval(function() {
+        if (document.getElementById('tab-log').classList.contains('active')) refreshLog();
+    }, 5000);
+
+    setInterval(function() {
+        if (document.getElementById('tab-tuning').classList.contains('active')) {
+            updateGovernorSettings();
+        }
+    }, 4000);
 }
 
-/* ===================== INIT ======================== */
-function initEvents(){
-  document.getElementById('btn-detect').addEventListener('click',detectApp);
-  document.getElementById('btn-rgames').addEventListener('click',refreshGameList);
-  document.getElementById('btn-add-game').addEventListener('click',addGame);
-  document.getElementById('btn-add-app').addEventListener('click',addAppGov);
-  document.getElementById('btn-rapps').addEventListener('click',refreshAppList);
-  document.getElementById('btn-rlog').addEventListener('click',refreshLog);
-  document.getElementById('btn-clog').addEventListener('click',function(){
-    document.getElementById('logbox').innerHTML='<div class="ll">Cleared</div>';
-  });
-  document.getElementById('game-input').addEventListener('keypress',function(e){
-    if(e.key==='Enter') addGame();
-  });
-  document.getElementById('app-input').addEventListener('keypress',function(e){
-    if(e.key==='Enter') addAppGov();
-  });
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initialize);
+} else {
+    initialize();
 }
-
-function init(){
-  initTabs();
-  initGovernorBtn();
-  initEvents();
-
-  loadDeviceInfo();
-  updateStatus();
-  loadGovernorUI();
-  refreshGameList();
-  refreshAppList();
-  refreshLog();
-
-  // Realtime polling
-  setInterval(updateStatus,2000);
-  setInterval(function(){
-    if(document.getElementById('tab-log').classList.contains('active')) refreshLog();
-  },5000);
-  setInterval(function(){
-    if(document.getElementById('tab-tuning').classList.contains('active')) loadGovernorUI();
-  },3000);
-}
-
-if(document.readyState==='loading')
-  document.addEventListener('DOMContentLoaded',init);
-else init();
 </script>
 </body>
 </html>
