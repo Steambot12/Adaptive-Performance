@@ -249,27 +249,29 @@ var appSelectDirty = false;
 var govListLoaded = false;
 
 // =====================================================================
-// Fix #2: Lock bottom-nav to bottom of SCREEN using visualViewport.
-// When the virtual keyboard opens, the visual viewport shrinks and
-// offsetTop changes. We re-anchor the nav to window.innerHeight so it
-// never moves up with the keyboard.
+// Fix: Lock bottom-nav to bottom of SCREEN using visualViewport.
+// Uses rAF on first call so offsetHeight is measured after layout.
+// Falls back to CSS bottom:0 when visualViewport is unsupported.
 // =====================================================================
 (function lockNavToScreen() {
     var nav = document.getElementById('bottom-nav');
+    var NAV_FALLBACK_HEIGHT = 68; // matches --nav-height in CSS
+
     function reposition() {
         var vv = window.visualViewport;
-        if (vv) {
-            // Offset from top of layout viewport to bottom of visual viewport
-            nav.style.top = (vv.offsetTop + vv.height - nav.offsetHeight) + 'px';
-            nav.style.bottom = 'auto';
-            nav.style.left  = vv.offsetLeft + 'px';
-            nav.style.width = vv.width + 'px';
-        }
+        if (!vv) return; // leave CSS position:fixed bottom:0 intact
+        var navH = nav.offsetHeight || NAV_FALLBACK_HEIGHT;
+        nav.style.top    = (vv.offsetTop + vv.height - navH) + 'px';
+        nav.style.bottom = 'auto';
+        nav.style.left   = vv.offsetLeft + 'px';
+        nav.style.width  = vv.width + 'px';
     }
+
     if (window.visualViewport) {
         window.visualViewport.addEventListener('resize', reposition);
         window.visualViewport.addEventListener('scroll', reposition);
-        reposition();
+        // Wait one rAF so layout is complete before first measurement
+        requestAnimationFrame(reposition);
     }
 })();
 
