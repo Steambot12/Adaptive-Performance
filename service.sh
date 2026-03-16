@@ -1,5 +1,5 @@
 #!/system/bin/sh
-# Adaptive Performance v1.3 - Stable Fix
+# Adaptive Performance v1.2 - Stable
 
 MODDIR=${0%/*}
 
@@ -42,7 +42,7 @@ while [ "$(getprop sys.boot_completed)" != "1" ]; do
 done
 
 log "================================================"
-log "Adaptive Performance v1.3 - Stable Fix"
+log "Adaptive Performance v1.2 - Stable"
 log "================================================"
 
 mkdir -p "$WEBROOT" 2>/dev/null
@@ -139,25 +139,20 @@ backup_governor_tunables() {
   return 0
 }
 
-# Apply governor to ALL cores including tunables
 restore_governor_config() {
   local target_gov="$1"
   local max_cpu=$((NUM_CORES - 1))
   log "Switching governor: $target_gov (cores: 0-$max_cpu)"
-
   for cpu in $(seq 0 $max_cpu); do
     local cpu_dir="${CPU_BASE}/cpu${cpu}/cpufreq"
     [ -d "$cpu_dir" ] || continue
-
     if [ -f "$STOCK_CONFIG_DIR/scaling_min_freq.txt" ]; then
       cat "$STOCK_CONFIG_DIR/scaling_min_freq.txt" > "$cpu_dir/scaling_min_freq" 2>/dev/null
     fi
     if [ -f "$STOCK_CONFIG_DIR/scaling_max_freq.txt" ]; then
       cat "$STOCK_CONFIG_DIR/scaling_max_freq.txt" > "$cpu_dir/scaling_max_freq" 2>/dev/null
     fi
-
     echo "$target_gov" > "$cpu_dir/scaling_governor" 2>/dev/null
-
     local tunable_dir="$cpu_dir/${target_gov}"
     local tunable_backup="$STOCK_CONFIG_DIR/$target_gov"
     if [ -d "$tunable_dir" ] && [ -d "$tunable_backup" ] && [ -f "$tunable_backup/.backup_done" ]; then
@@ -176,7 +171,6 @@ restore_governor_config() {
 # GOVERNOR DETECTION
 # ============================================================
 detect_default_governor() {
-  local default_gov=""
   if [ -f "$DEFAULT_GOV_FILE" ]; then
     local saved=$(cat "$DEFAULT_GOV_FILE" 2>/dev/null | head -1 | tr -d '\r\n\t')
     if [ -n "$saved" ] && echo "$AVAILABLE_GOVERNORS" | grep -qw "$saved" && [ "$saved" != "performance" ]; then
@@ -231,7 +225,7 @@ load_gaming_governor() {
 }
 
 # ============================================================
-# FOREGROUND APP DETECTION
+# FOREGROUND APP
 # ============================================================
 get_foreground_app() {
   local fg
@@ -267,7 +261,7 @@ set_app_governor() {
     return 1
   fi
   if [ -f "$GAME_PACKAGES" ] && grep -Fxq "$pkg" "$GAME_PACKAGES" 2>/dev/null; then
-    log "ERROR: Package exists in game list, remove it first"
+    log "ERROR: Package already in game list: $pkg"
     return 1
   fi
   if grep -q "^${pkg}=" "$APP_GOVERNORS" 2>/dev/null; then
@@ -284,7 +278,7 @@ set_app_governor() {
 
 remove_app_governor() {
   local pkg="$1"
-  [ -z "$pkg" ] && { log "ERROR: remove_app_governor called with empty pkg"; return 1; }
+  [ -z "$pkg" ] && { log "ERROR: empty pkg"; return 1; }
   pkg=$(echo "$pkg" | tr -d '\r\n\t' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
   log "REMOVE PER-APP: $pkg"
   if [ ! -f "$APP_GOVERNORS" ]; then
@@ -301,11 +295,11 @@ remove_app_governor() {
     log "INFO: $pkg not found in per-app list"
   fi
   generate_app_governors_json
-  # Reset governor if this app is currently in foreground
   local current_fg=$(get_foreground_app)
   if [ "$current_fg" = "$pkg" ]; then
-    log "App $pkg is active foreground, resetting to default governor: $DEFAULT_GOVERNOR"
+    log "App $pkg is foreground, reset governor to: $DEFAULT_GOVERNOR"
     restore_governor_config "$DEFAULT_GOVERNOR"
+    generate_dynamic_json "$pkg" "idle"
   fi
   return 0
 }
@@ -328,7 +322,7 @@ generate_app_governors_json() {
     done < "$APP_GOVERNORS"
   fi
   local ts=$(date +%s)000
-  printf '{"status":"success","app_governors":[%s],"count":%d,"timestamp":%s}' \
+  printf '{"status":"success","app_governors":[%s],"count":%d,"timestamp":%s}\n' \
     "$app_govs_array" "$count" "$ts" > "$JSON_APP_GOVS"
   chmod 666 "$JSON_APP_GOVS" 2>/dev/null
 }
@@ -339,19 +333,18 @@ generate_app_governors_json() {
 add_package() {
   local pkg="$1"
   [ -z "$pkg" ] && return 1
-  pkg=$(echo "$pkg" | tr -d '\r\n\t' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' 2>/dev/null)
-  # Validate package name format
-  echo "$pkg" | grep -Eq '^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)+$' 2>/dev/null || {
+  pkg=$(echo "$pkg" | tr -d '\r\n\t' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+  echo "$pkg" | grep -Eq '^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)+$' || {
     log "ERROR: Invalid package format: $pkg"
     return 1
   }
   if grep -Fxq "$pkg" "$GAME_PACKAGES" 2>/dev/null; then
-    log "WARN: Duplicate package: $pkg"
+    log "WARN: Duplicate: $pkg"
     generate_games_json
     return 1
   fi
   if [ -f "$APP_GOVERNORS" ] && grep -q "^${pkg}=" "$APP_GOVERNORS" 2>/dev/null; then
-    log "ERROR: Package in per-app list, remove it first: $pkg"
+    log "ERROR: Conflict with per-app list: $pkg"
     return 1
   fi
   echo "$pkg" >> "$GAME_PACKAGES"
@@ -365,9 +358,9 @@ add_package() {
 remove_package() {
   local pkg="$1"
   [ -z "$pkg" ] && return 1
-  pkg=$(echo "$pkg" | tr -d '\r\n\t' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' 2>/dev/null)
+  pkg=$(echo "$pkg" | tr -d '\r\n\t' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
   if ! grep -Fxq "$pkg" "$GAME_PACKAGES" 2>/dev/null; then
-    log "INFO: Package not in game list: $pkg"
+    log "INFO: Not in game list: $pkg"
     generate_games_json
     return 0
   fi
@@ -377,11 +370,12 @@ remove_package() {
   sync
   log "REMOVED game package: $pkg"
   generate_games_json
-  # If removed package is currently in foreground, reset governor to default
+  # Reset governor jika package ini sedang foreground
   local current_fg=$(get_foreground_app)
   if [ "$current_fg" = "$pkg" ]; then
-    log "Removed package is active, resetting governor to default: $DEFAULT_GOVERNOR"
+    log "Removed pkg is foreground, reset governor to: $DEFAULT_GOVERNOR"
     restore_governor_config "$DEFAULT_GOVERNOR"
+    generate_dynamic_json "$pkg" "idle"
   fi
   return 0
 }
@@ -389,7 +383,7 @@ remove_package() {
 set_gaming_governor() {
   local gov="$1"
   [ -z "$gov" ] && return 1
-  gov=$(echo "$gov" | tr -d '\r\n\t' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' 2>/dev/null)
+  gov=$(echo "$gov" | tr -d '\r\n\t' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
   if ! echo "$AVAILABLE_GOVERNORS" | grep -qw "$gov"; then
     log "ERROR: Governor not available: $gov"
     return 1
@@ -400,6 +394,13 @@ set_gaming_governor() {
   GAMING_GOVERNOR="$gov"
   log "Gaming governor updated: $gov"
   generate_config_json
+  # Jika saat ini sedang gaming mode, apply langsung
+  local current_fg=$(get_foreground_app)
+  if [ -n "$current_fg" ] && is_game "$current_fg" 2>/dev/null; then
+    log "Gaming app active, applying new governor immediately: $gov"
+    restore_governor_config "$gov"
+  fi
+  generate_dynamic_json "$(get_foreground_app)" "gaming"
   return 0
 }
 
@@ -416,7 +417,7 @@ generate_config_json() {
       count=$((count + 1))
     fi
   done
-  printf '{"chipset":"%s","default_idle":"%s","gaming_governor":"%s","available_governors":[%s],"all_governors":"%s"}' \
+  printf '{"chipset":"%s","default_idle":"%s","gaming_governor":"%s","available_governors":[%s],"all_governors":"%s"}\n' \
     "$CHIPSET" "$DEFAULT_GOVERNOR" "$gaming_gov" "$gov_options" "$AVAILABLE_GOVERNORS" > "$JSON_CONFIG"
   chmod 666 "$JSON_CONFIG" 2>/dev/null
 }
@@ -428,14 +429,14 @@ generate_games_json() {
     while IFS= read -r line || [ -n "$line" ]; do
       [ -z "$line" ] && continue
       case "$line" in "#"*) continue ;; esac
-      line=$(echo "$line" | tr -d '\r\n\t' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' 2>/dev/null)
+      line=$(echo "$line" | tr -d '\r\n\t' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
       [ -z "$line" ] && continue
       [ $count -eq 0 ] && games_array="\"${line}\"" || games_array="${games_array},\"${line}\""
       count=$((count + 1))
     done < "$GAME_PACKAGES"
   fi
   local ts=$(date +%s)000
-  printf '{"status":"success","games":[%s],"count":%d,"timestamp":%s}' \
+  printf '{"status":"success","games":[%s],"count":%d,"timestamp":%s}\n' \
     "$games_array" "$count" "$ts" > "$JSON_GAMES"
   chmod 666 "$JSON_GAMES" 2>/dev/null
 }
@@ -443,7 +444,7 @@ generate_games_json() {
 generate_static_json() {
   local device=$(getprop ro.product.model 2>/dev/null || echo "Unknown")
   local kernel=$(uname -r 2>/dev/null || echo "Unknown")
-  printf '{"cores":%d,"kernel":"%s","device":"%s","default_governor":"%s","chipset":"%s"}' \
+  printf '{"cores":%d,"kernel":"%s","device":"%s","default_governor":"%s","chipset":"%s"}\n' \
     "$NUM_CORES" "$kernel" "$device" "$DEFAULT_GOVERNOR" "$CHIPSET" > "$JSON_STATIC"
   chmod 666 "$JSON_STATIC" 2>/dev/null
 }
@@ -474,7 +475,7 @@ generate_dynamic_json() {
     local freq=$(cat "${CPU_BASE}/cpu${cpu}/cpufreq/scaling_cur_freq" 2>/dev/null || echo "0")
     [ $cpu -eq 0 ] && freqs="$freq" || freqs="$freqs,$freq"
   done
-  printf '{"governor":"%s","foreground":"%s","temperature":%d,"frequencies":[%s],"state":"%s","timestamp":%d}' \
+  printf '{"governor":"%s","foreground":"%s","temperature":%d,"frequencies":[%s],"state":"%s","timestamp":%d}\n' \
     "$governor" "$foreground" "$temp" "$freqs" "$state" "$(date +%s)" > "$JSON_DYNAMIC"
   chmod 666 "$JSON_DYNAMIC" 2>/dev/null
 }
@@ -492,11 +493,13 @@ check_thermal() {
     fi
     return 1
   elif [ "$temp" -ge "$THERMAL_WARNING" ] 2>/dev/null; then
-    log "THERMAL WARNING: ${temp} mC"
+    if [ "$THERMAL_TRIGGERED" -eq 0 ]; then
+      log "THERMAL WARNING: ${temp} mC"
+    fi
     return 1
   else
     if [ "$THERMAL_TRIGGERED" -eq 1 ]; then
-      log "THERMAL OK: ${temp} mC - resuming adaptive mode"
+      log "THERMAL OK: ${temp} mC - resuming"
       THERMAL_TRIGGERED=0
     fi
     return 0
@@ -515,108 +518,120 @@ start_http_server() {
 }
 
 # ============================================================
-# API SERVER - Simple single nc loop, no FIFO, no race condition
-# Terima 1 request -> proses -> kirim response -> ulang
+# API SERVER
+# Arsitektur: nc -l pipe ke handler, handler pipe response ke nc -l kedua.
+# BENAR: 1 nc per siklus, baca request + tulis response via HEREDOC ke nc
 # ============================================================
+handle_request() {
+  local GET_LINE="$1"
+  local QUERY=$(echo "$GET_LINE" | grep -oE '\?[^ ]+' | cut -c2-)
+
+  local ACTION="" PKG="" GOVERNOR=""
+
+  if [ -n "$QUERY" ]; then
+    for param in $(echo "$QUERY" | tr '&' '\n'); do
+      local KEY=$(echo "$param" | cut -d= -f1)
+      local VAL=$(echo "$param" | cut -d= -f2- | sed 's/%2E/./g; s/%2e/./g; s/%20/ /g; s/+/ /g; s/%2F/\//g')
+      case "$KEY" in
+        action)   ACTION="$VAL" ;;
+        pkg)      PKG="$VAL" ;;
+        governor) GOVERNOR="$VAL" ;;
+      esac
+    done
+  fi
+
+  local BODY=""
+  case "$ACTION" in
+    add)
+      if [ -z "$PKG" ]; then
+        BODY='{"status":"error","message":"Missing pkg"}'
+      elif add_package "$PKG"; then
+        BODY='{"status":"success","message":"Package added","package":"'"$PKG"'"}'
+      else
+        BODY='{"status":"error","message":"Duplicate or conflict"}'
+      fi
+      ;;
+    remove)
+      if [ -z "$PKG" ]; then
+        BODY='{"status":"error","message":"Missing pkg"}'
+      elif remove_package "$PKG"; then
+        BODY='{"status":"success","message":"Package removed","package":"'"$PKG"'"}'
+      else
+        BODY='{"status":"error","message":"Failed to remove"}'
+      fi
+      ;;
+    set_governor)
+      if [ -z "$GOVERNOR" ]; then
+        BODY='{"status":"error","message":"Missing governor"}'
+      elif set_gaming_governor "$GOVERNOR"; then
+        BODY='{"status":"success","message":"Governor updated","governor":"'"$GOVERNOR"'"}'
+      else
+        BODY='{"status":"error","message":"Governor not available"}'
+      fi
+      ;;
+    set_app_governor)
+      if [ -z "$PKG" ] || [ -z "$GOVERNOR" ]; then
+        BODY='{"status":"error","message":"Missing pkg or governor"}'
+      elif set_app_governor "$PKG" "$GOVERNOR"; then
+        BODY='{"status":"success","message":"App governor set","package":"'"$PKG"'","governor":"'"$GOVERNOR"'"}'
+      else
+        BODY='{"status":"error","message":"Invalid governor or conflict"}'
+      fi
+      ;;
+    remove_app_governor)
+      if [ -z "$PKG" ]; then
+        BODY='{"status":"error","message":"Missing pkg"}'
+      elif remove_app_governor "$PKG"; then
+        BODY='{"status":"success","message":"App governor removed","package":"'"$PKG"'"}'
+      else
+        BODY='{"status":"error","message":"Failed"}'
+      fi
+      ;;
+    get_status)
+      local cur_gov=$(cat "${CPU_BASE}/cpu0/cpufreq/scaling_governor" 2>/dev/null || echo "unknown")
+      local cur_temp=$(get_temperature)
+      BODY='{"status":"success","governor":"'"$cur_gov"'","default":"'"$DEFAULT_GOVERNOR"'","gaming":"'"$GAMING_GOVERNOR"'","temperature":'"$cur_temp"'}'
+      ;;
+    "")
+      # Health check / empty request
+      BODY='{"status":"ok"}'
+      ;;
+    *)
+      BODY='{"status":"error","message":"Unknown action"}'
+      ;;
+  esac
+
+  [ -z "$ACTION" ] && log "API: health check" || log "API: $ACTION $PKG $GOVERNOR -> ${BODY}"
+  echo "$BODY"
+}
+
 start_api_server() {
-  local tmp_req="/data/local/tmp/adaptperf_req.tmp"
+  local TMP_REQ="/data/local/tmp/adaptperf_req.tmp"
+  local TMP_RESP="/data/local/tmp/adaptperf_resp.tmp"
   while true; do
-    # Terima 1 koneksi, simpan request ke file sementara
-    nc -l -p $API_PORT -w 3 2>/dev/null > "$tmp_req"
+    # Terima koneksi, baca request ke file tmp
+    rm -f "$TMP_REQ" "$TMP_RESP"
+    nc -l -p $API_PORT -w 5 > "$TMP_REQ" 2>/dev/null
 
-    # Baca baris pertama request
-    GET_LINE=$(head -1 "$tmp_req" 2>/dev/null)
-    QUERY=$(echo "$GET_LINE" | grep -oE '\?[^ ]+' | cut -c2-)
+    # Ambil GET line
+    local GET_LINE=$(head -1 "$TMP_REQ" 2>/dev/null | tr -d '\r')
+    [ -z "$GET_LINE" ] && continue
 
-    ACTION=""
-    PKG=""
-    GOVERNOR=""
+    # Proses request, hasilkan body
+    local BODY=$(handle_request "$GET_LINE")
+    local BLEN=${#BODY}
 
-    if [ -n "$QUERY" ]; then
-      for param in $(echo "$QUERY" | tr '&' '\n'); do
-        KEY=$(echo "$param" | cut -d= -f1)
-        VAL=$(echo "$param" | cut -d= -f2- | sed 's/%2E/./g; s/%2e/./g; s/%20/ /g; s/+/ /g' 2>/dev/null)
-        case "$KEY" in
-          "action") ACTION="$VAL" ;;
-          "pkg")    PKG="$VAL" ;;
-          "governor") GOVERNOR="$VAL" ;;
-        esac
-      done
-    fi
-
-    # Skip jika tidak ada action (koneksi kosong / health check)
-    [ -z "$ACTION" ] && continue
-
-    log "API: action=$ACTION pkg=$PKG governor=$GOVERNOR"
-
-    RESPONSE=""
-    case "$ACTION" in
-      "add")
-        if [ -z "$PKG" ]; then
-          RESPONSE='{"status":"error","message":"Missing pkg"}'
-        elif add_package "$PKG"; then
-          RESPONSE='{"status":"success","message":"Added","package":"'"$PKG"'"}'
-        else
-          RESPONSE='{"status":"error","message":"Failed: duplicate or conflict"}'
-        fi
-        ;;
-      "remove")
-        if [ -z "$PKG" ]; then
-          RESPONSE='{"status":"error","message":"Missing pkg"}'
-        elif remove_package "$PKG"; then
-          RESPONSE='{"status":"success","message":"Removed","package":"'"$PKG"'"}'
-        else
-          RESPONSE='{"status":"error","message":"Failed"}'
-        fi
-        ;;
-      "set_governor")
-        if [ -z "$GOVERNOR" ]; then
-          RESPONSE='{"status":"error","message":"Missing governor"}'
-        elif set_gaming_governor "$GOVERNOR"; then
-          RESPONSE='{"status":"success","message":"Governor set","governor":"'"$GOVERNOR"'"}'
-        else
-          RESPONSE='{"status":"error","message":"Governor not available"}'
-        fi
-        ;;
-      "set_app_governor")
-        if [ -z "$PKG" ] || [ -z "$GOVERNOR" ]; then
-          RESPONSE='{"status":"error","message":"Missing pkg or governor"}'
-        elif set_app_governor "$PKG" "$GOVERNOR"; then
-          RESPONSE='{"status":"success","message":"App governor set","package":"'"$PKG"'","governor":"'"$GOVERNOR"'"}'
-        else
-          RESPONSE='{"status":"error","message":"Failed: invalid governor or conflict"}'
-        fi
-        ;;
-      "remove_app_governor")
-        if [ -z "$PKG" ]; then
-          RESPONSE='{"status":"error","message":"Missing pkg"}'
-        elif remove_app_governor "$PKG"; then
-          RESPONSE='{"status":"success","message":"App governor removed","package":"'"$PKG"'"}'
-        else
-          RESPONSE='{"status":"error","message":"Failed"}'
-        fi
-        ;;
-      "get_status")
-        local cur_gov=$(cat "${CPU_BASE}/cpu0/cpufreq/scaling_governor" 2>/dev/null || echo "unknown")
-        local cur_temp=$(get_temperature)
-        RESPONSE='{"status":"success","governor":"'"$cur_gov"'","default":"'"$DEFAULT_GOVERNOR"'","gaming":"'"$GAMING_GOVERNOR"'","temperature":'"$cur_temp"'}'
-        ;;
-      *)
-        RESPONSE='{"status":"error","message":"Invalid action: '"$ACTION"'"}'
-        ;;
-    esac
-
-    # Kirim HTTP response
-    local resp_len=${#RESPONSE}
-    printf 'HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: %d\r\nAccess-Control-Allow-Origin: *\r\nConnection: close\r\n\r\n%s' \
-      "$resp_len" "$RESPONSE" | nc -l -p $API_PORT -w 2 >/dev/null 2>&1
-
-    log "API response sent: $RESPONSE"
+    # Tulis HTTP response ke file, kirim via nc baru
+    printf 'HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: %d\r\nAccess-Control-Allow-Origin: *\r\nAccess-Control-Allow-Methods: GET, OPTIONS\r\nConnection: close\r\n\r\n%s' \
+      "$BLEN" "$BODY" > "$TMP_RESP"
+    nc -l -p $API_PORT -w 2 < "$TMP_RESP" >/dev/null 2>&1 &
+    # Beri sedikit jeda agar nc sempat bind sebelum client retry
+    sleep 0.1
   done
 }
 
 # ============================================================
-# GAME DETECTION & MONITOR LOOP
+# GAME DETECTION
 # ============================================================
 is_game() {
   local app="$1"
@@ -624,32 +639,15 @@ is_game() {
   [ ! -f "$GAME_PACKAGES" ] && return 1
   while IFS= read -r package || [ -n "$package" ]; do
     case "$package" in "#"*|"") continue ;; esac
-    package=$(echo "$package" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' 2>/dev/null)
+    package=$(echo "$package" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
     [ "$app" = "$package" ] && return 0
   done < "$GAME_PACKAGES"
   return 1
 }
 
-apply_performance() {
-  local new_gov=$(cat "$GOVERNOR_PREF" 2>/dev/null | head -1 | tr -d '\r\n\t')
-  if [ -n "$new_gov" ] && echo "$AVAILABLE_GOVERNORS" | grep -qw "$new_gov"; then
-    GAMING_GOVERNOR="$new_gov"
-  fi
-  restore_governor_config "$GAMING_GOVERNOR"
-  log "MODE: GAMING -> $GAMING_GOVERNOR"
-}
-
-apply_powersave() {
-  restore_governor_config "$DEFAULT_GOVERNOR"
-  log "MODE: IDLE -> $DEFAULT_GOVERNOR"
-}
-
-apply_app_governor() {
-  local app_gov="$1"
-  restore_governor_config "$app_gov"
-  log "MODE: PER-APP -> $app_gov"
-}
-
+# ============================================================
+# MONITOR LOOP
+# ============================================================
 monitor_loop() {
   local current_state="idle"
   local last_foreground=""
@@ -658,24 +656,30 @@ monitor_loop() {
   local idle_counter=0
   local app_counter=0
 
-  apply_powersave
+  restore_governor_config "$DEFAULT_GOVERNOR"
+  log "Monitor loop started. Default: $DEFAULT_GOVERNOR, Gaming: $GAMING_GOVERNOR"
 
   while true; do
-    foreground=$(get_foreground_app)
+    local foreground=$(get_foreground_app)
 
     if [ -n "$foreground" ] && [ "$foreground" != "$last_foreground" ]; then
       last_foreground="$foreground"
       log "Foreground: $foreground"
-      game_counter=0
-      idle_counter=0
-      app_counter=0
+      game_counter=0; idle_counter=0; app_counter=0
     fi
 
-    # Thermal check - skip governor switch if overheating
+    # Thermal check
     if ! check_thermal; then
+      current_state="thermal_throttle"
+      last_applied_governor=""
       generate_dynamic_json "$foreground" "thermal_throttle"
-      sleep 2
-      continue
+      sleep 2; continue
+    fi
+
+    # Reload gaming governor dari file (agar realtime update saat user ubah via API)
+    local current_gaming_gov=$(cat "$GOVERNOR_PREF" 2>/dev/null | head -1 | tr -d '\r\n\t')
+    if [ -n "$current_gaming_gov" ] && echo "$AVAILABLE_GOVERNORS" | grep -qw "$current_gaming_gov"; then
+      GAMING_GOVERNOR="$current_gaming_gov"
     fi
 
     # Per-app governor check
@@ -691,58 +695,39 @@ monitor_loop() {
     local target_governor=""
 
     if [ $has_custom_gov -eq 0 ] && [ -n "$app_custom_gov" ]; then
-      # Priority 1: Per-app custom governor
       target_state="gaming"
       target_governor="$app_custom_gov"
       app_counter=$((app_counter + 1))
-      game_counter=0
-      idle_counter=0
+      game_counter=0; idle_counter=0
       [ $app_counter -ge 2 ] && should_apply=1
     else
       local is_game_running=0
       [ -n "$foreground" ] && is_game "$foreground" && is_game_running=1
-
       if [ $is_game_running -eq 1 ]; then
-        # Priority 2: Game list
         target_state="gaming"
         target_governor="$GAMING_GOVERNOR"
         game_counter=$((game_counter + 1))
-        idle_counter=0
-        app_counter=0
+        idle_counter=0; app_counter=0
         [ $game_counter -ge 3 ] && should_apply=1
       else
-        # Priority 3: Idle
         target_state="idle"
         target_governor="$DEFAULT_GOVERNOR"
         idle_counter=$((idle_counter + 1))
-        game_counter=0
-        app_counter=0
+        game_counter=0; app_counter=0
         [ $idle_counter -ge 3 ] && should_apply=1
       fi
     fi
 
     if [ $should_apply -eq 1 ]; then
       if [ "$current_state" != "$target_state" ] || [ "$last_applied_governor" != "$target_governor" ]; then
-        case "$target_state" in
-          "gaming")
-            if [ $has_custom_gov -eq 0 ] && [ -n "$app_custom_gov" ]; then
-              apply_app_governor "$target_governor"
-            else
-              apply_performance
-              target_governor="$GAMING_GOVERNOR"
-            fi
-            ;;
-          "idle")
-            apply_powersave
-            target_governor="$DEFAULT_GOVERNOR"
-            ;;
-        esac
+        restore_governor_config "$target_governor"
         current_state="$target_state"
         last_applied_governor="$target_governor"
+        log "STATE: $target_state -> $target_governor (fg: $foreground)"
       fi
     fi
 
-    generate_dynamic_json "$foreground" "$target_state"
+    generate_dynamic_json "$foreground" "$current_state"
     sleep 1
   done
 }
