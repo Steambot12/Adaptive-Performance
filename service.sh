@@ -1,5 +1,5 @@
 #!/system/bin/sh
-# Adaptive Performance v1.2.1
+# Adaptive Performance v1.3
 
 MODDIR=${0%/*}
 
@@ -45,7 +45,7 @@ while [ "$(getprop sys.boot_completed)" != "1" ]; do
 done
 
 log "================================================"
-log "Adaptive Performance v1.2.1"
+log "Adaptive Performance v1.3"
 log "================================================"
 
 mkdir -p "$WEBROOT" 2>/dev/null
@@ -69,13 +69,22 @@ fi
 if [ ! -f "$GAME_PACKAGES" ]; then
   cat > "$GAME_PACKAGES" << 'EOF'
 com.miHoYo.GenshinImpact
+com.HoYoverse.hkrpgoversea
 com.activision.callofduty.shooter
 com.mobile.legends
 com.garena.game.df
+com.garena.game.fcthai
 com.proxima.dfm
 com.YoStarEN.Kuro.WutheringWaves
 com.tencent.ig
 com.pubg.krmobile
+com.pubg.imobile
+com.supercell.clashofclans
+com.supercell.clashroyale
+com.riotgames.league.wildrift
+com.dts.freefireth
+com.dts.freefiremax
+com.levelinfinite.hotta.gp
 EOF
 fi
 chmod 666 "$GAME_PACKAGES" 2>/dev/null
@@ -93,8 +102,15 @@ detect_chipset() {
   local platform=$(getprop ro.board.platform 2>/dev/null)
   local hardware=$(getprop ro.hardware 2>/dev/null)
   local soc=$(getprop ro.soc.model 2>/dev/null)
-  if echo "$platform$hardware$soc" | grep -qiE "mt[0-9]+|mediatek|dimensity"; then
+  local combined="$platform$hardware$soc"
+  if echo "$combined" | grep -qiE "mt[0-9]+|mediatek|dimensity"; then
     echo "mediatek"
+  elif echo "$combined" | grep -qiE "exynos|samsung|universal[0-9]|s5e"; then
+    echo "exynos"
+  elif echo "$combined" | grep -qiE "unisoc|spreadtrum|ums[0-9]|sc[0-9]"; then
+    echo "unisoc"
+  elif echo "$combined" | grep -qiE "tensor|gs[0-9]|zuma|whitechapel"; then
+    echo "tensor"
   else
     echo "snapdragon"
   fi
@@ -192,11 +208,11 @@ detect_default_governor() {
     [ -n "$stock" ] && [ "$stock" != "performance" ] && echo "$stock" && return
   fi
   if [ "$CHIPSET" = "mediatek" ]; then
-    for g in sugov_ext schedutil walt interactive ondemand; do
+    for g in sugov_ext blu_schedutil schedutil walt interactive ondemand; do
       echo "$AVAILABLE_GOVERNORS" | grep -q "$g" && echo "$g" && return
     done
   else
-    for g in walt schedutil interactive ondemand; do
+    for g in walt blu_schedutil schedutil interactive ondemand; do
       echo "$AVAILABLE_GOVERNORS" | grep -q "$g" && echo "$g" && return
     done
   fi
@@ -208,11 +224,11 @@ detect_default_governor() {
 
 detect_gaming_governor() {
   if [ "$CHIPSET" = "mediatek" ]; then
-    for g in schedhorizon schedutil performance; do
+    for g in schedhorizon blu_schedutil schedutil performance; do
       echo "$AVAILABLE_GOVERNORS" | grep -q "$g" && echo "$g" && return
     done
   else
-    for g in schedutil performance; do
+    for g in vorpal blu_schedutil schedutil performance; do
       echo "$AVAILABLE_GOVERNORS" | grep -q "$g" && echo "$g" && return
     done
   fi
@@ -405,18 +421,10 @@ generate_config_json() {
   [ -z "$gaming_gov" ] && gaming_gov="$GAMING_GOVERNOR"
   local gov_opts=""
   local cnt=0
-  for g in schedutil schedhorizon ondemand performance interactive conservative powersave walt sugov_ext; do
-    if echo "$AVAILABLE_GOVERNORS" | grep -q "$g"; then
-      [ $cnt -eq 0 ] && gov_opts="\"$g\"" || gov_opts="$gov_opts,\"$g\""
-      cnt=$((cnt + 1))
-    fi
+  for g in $AVAILABLE_GOVERNORS; do
+    [ $cnt -eq 0 ] && gov_opts="\"$g\"" || gov_opts="$gov_opts,\"$g\""
+    cnt=$((cnt + 1))
   done
-  if [ $cnt -eq 0 ]; then
-    for g in $AVAILABLE_GOVERNORS; do
-      [ $cnt -eq 0 ] && gov_opts="\"$g\"" || gov_opts="$gov_opts,\"$g\""
-      cnt=$((cnt + 1))
-    done
-  fi
   printf '{"chipset":"%s","default_idle":"%s","gaming_governor":"%s","available_governors":[%s],"all_governors":"%s"}' \
     "$CHIPSET" "$DEFAULT_GOVERNOR" "$gaming_gov" "$gov_opts" "$AVAILABLE_GOVERNORS" > "$JSON_CONFIG"
   chmod 666 "$JSON_CONFIG" 2>/dev/null
@@ -539,7 +547,8 @@ apply_app_governor() {
 # HTTP SERVER
 # ============================================================
 start_http_server() {
-  killall httpd 2>/dev/null
+  # Kill any stale instances
+  for pid in $(pgrep -f "httpd.*$HTTP_PORT" 2>/dev/null); do kill "$pid" 2>/dev/null; done
   sleep 1
   ln -sf "$LOG" "$WEBROOT/log.txt" 2>/dev/null
   chmod 666 "$WEBROOT/log.txt" 2>/dev/null
@@ -558,7 +567,9 @@ start_http_server() {
 # ============================================================
 start_api_server() {
   log "API server started :$API_PORT"
+
   while true; do
+    # Read request from nc
     REQUEST=$(echo "" | nc -l -p $API_PORT 2>/dev/null | head -10)
     GET_LINE=$(echo "$REQUEST" | head -1)
     QUERY=$(echo "$GET_LINE" | grep -oE '\?[^ ]+' | cut -c2-)
@@ -632,13 +643,13 @@ start_api_server() {
         ;;
     esac
 
-    # Only log real actions
     log "API: action=$ACTION pkg=$PKG gov=$GOVERNOR"
 
+    # Send response — client polls via dashboard so fire-and-forget is fine
     printf 'HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: %d\r\nAccess-Control-Allow-Origin: *\r\nCache-Control: no-store\r\nConnection: close\r\n\r\n%s' \
-      "${#RESPONSE}" "$RESPONSE" | nc -l -p $API_PORT -w 1 >/dev/null 2>&1 &
+      "${#RESPONSE}" "$RESPONSE" | nc -l -p $API_PORT -w 2 >/dev/null 2>&1 &
 
-    sleep 0.3
+    sleep 0.2
   done
 }
 
@@ -683,7 +694,7 @@ monitor_loop() {
     local has_custom=$?
 
     if [ $has_custom -eq 0 ] && [ -n "$app_custom_gov" ]; then
-      target_state="gaming"
+      target_state="custom"
       target_governor="$app_custom_gov"
       app_counter=$((app_counter + 1)); game_counter=0; idle_counter=0
       [ $app_counter -ge 2 ] && should_apply=1
@@ -703,12 +714,11 @@ monitor_loop() {
       if [ "$current_state" != "$target_state" ] || [ "$last_applied_governor" != "$target_governor" ]; then
         case "$target_state" in
           gaming)
-            if [ $has_custom -eq 0 ] && [ -n "$app_custom_gov" ]; then
-              apply_app_governor "$target_governor"
-            else
-              apply_performance
-              target_governor="$GAMING_GOVERNOR"
-            fi
+            apply_performance
+            target_governor="$GAMING_GOVERNOR"
+            ;;
+          custom)
+            apply_app_governor "$target_governor"
             ;;
           idle) apply_powersave ;;
         esac
@@ -745,7 +755,7 @@ start_http_server
 sleep 2
 start_api_server &
 
-log "=== MODULE READY v1.2.1 ==="
+log "=== MODULE READY v1.3 ==="
 log "Dashboard : http://127.0.0.1:$HTTP_PORT"
 log "API Server: http://127.0.0.1:$API_PORT"
 log "================================================"

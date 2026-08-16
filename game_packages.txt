@@ -1,8 +1,17 @@
 com.miHoYo.GenshinImpact
+com.HoYoverse.hkrpgoversea
 com.activision.callofduty.shooter
 com.mobile.legends
 com.garena.game.df
+com.garena.game.fcthai
 com.proxima.dfm
 com.YoStarEN.Kuro.WutheringWaves
 com.tencent.ig
 com.pubg.krmobile
+com.pubg.imobile
+com.supercell.clashofclans
+com.supercell.clashroyale
+com.riotgames.league.wildrift
+com.dts.freefireth
+com.dts.freefiremax
+com.levelinfinite.hotta.gp

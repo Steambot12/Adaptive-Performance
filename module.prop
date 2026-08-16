@@ -1,6 +1,6 @@
 id=adaptive_performance
 name=Adaptive Performance
-version=1.2
-versionCode=58
+version=1.3
+versionCode=60
 author=Steambot12
-description=Adaptive Performance - Auto CPU governor switching based on foreground app. Supports per-app governor, thermal protection, and game list management.
+description=Adaptive Performance - Auto CPU governor switching based on foreground app. Supports per-app governor, thermal protection, and game list management. Works on Snapdragon, Mediatek, Exynos, Unisoc, and Tensor chipsets.

@@ -2,33 +2,47 @@
 # Adaptive Performance – Clean Uninstall Script
 
 MODDIR=${0%/*}
+MODULE_PATH="/data/adb/modules/adaptive_performance"
 
 # Stop service processes
-killall httpd 2>/dev/null
-killall nc 2>/dev/null
+for pid in $(pgrep -f "httpd.*9876" 2>/dev/null); do kill "$pid" 2>/dev/null; done
+for pid in $(pgrep -f "nc.*9877" 2>/dev/null); do kill "$pid" 2>/dev/null; done
+for pid in $(pgrep -f "service.sh" 2>/dev/null); do kill "$pid" 2>/dev/null; done
 
-# Hapus log dan file runtime
+# Remove log and runtime files
 rm -f /data/local/tmp/adaptive_perf.log 2>/dev/null
 
-# Hapus file config yang dibuat module
-rm -f /data/adb/modules/adaptive_performance/governor_pref.txt 2>/dev/null
-rm -f /data/adb/modules/adaptive_performance/default_governor.txt 2>/dev/null
+# Remove config files created by module
+rm -f "$MODULE_PATH/governor_pref.txt" 2>/dev/null
+rm -f "$MODULE_PATH/default_governor.txt" 2>/dev/null
 
-# Hapus JSON files yang di-generate runtime
-rm -f /data/adb/modules/adaptive_performance/webroot/dynamic.json 2>/dev/null
-rm -f /data/adb/modules/adaptive_performance/webroot/static.json 2>/dev/null
-rm -f /data/adb/modules/adaptive_performance/webroot/games.json 2>/dev/null
-rm -f /data/adb/modules/adaptive_performance/webroot/config.json 2>/dev/null
-rm -f /data/adb/modules/adaptive_performance/webroot/log.txt 2>/dev/null
+# Remove JSON files generated at runtime
+rm -f "$MODULE_PATH/webroot/dynamic.json" 2>/dev/null
+rm -f "$MODULE_PATH/webroot/static.json" 2>/dev/null
+rm -f "$MODULE_PATH/webroot/games.json" 2>/dev/null
+rm -f "$MODULE_PATH/webroot/config.json" 2>/dev/null
+rm -f "$MODULE_PATH/webroot/app_governors.json" 2>/dev/null
+rm -f "$MODULE_PATH/webroot/log.txt" 2>/dev/null
 
-# Restore governor ke default (best effort)
-AVAILABLE_GOVERNORS=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors 2>/dev/null)
-if echo "$AVAILABLE_GOVERNORS" | grep -q "schedutil"; then
-  RESTORE_GOV="schedutil"
-elif echo "$AVAILABLE_GOVERNORS" | grep -q "walt"; then
-  RESTORE_GOV="walt"
-else
-  RESTORE_GOV=$(echo "$AVAILABLE_GOVERNORS" | awk '{print $1}')
+# Remove stock config backups
+rm -rf "$MODULE_PATH/stock_configs" 2>/dev/null
+
+# Restore governor to stock (best effort)
+# Try saved stock governor first, then common defaults
+RESTORE_GOV=""
+if [ -f "$MODULE_PATH/stock_configs/stock_governor.txt" ]; then
+  RESTORE_GOV=$(cat "$MODULE_PATH/stock_configs/stock_governor.txt" 2>/dev/null | head -1 | tr -d ' \r\n\t')
+fi
+
+if [ -z "$RESTORE_GOV" ]; then
+  AVAILABLE_GOVERNORS=$(cat /sys/devices/system/cpu/cpu0/cpufreq/scaling_available_governors 2>/dev/null)
+  if echo "$AVAILABLE_GOVERNORS" | grep -q "schedutil"; then
+    RESTORE_GOV="schedutil"
+  elif echo "$AVAILABLE_GOVERNORS" | grep -q "walt"; then
+    RESTORE_GOV="walt"
+  else
+    RESTORE_GOV=$(echo "$AVAILABLE_GOVERNORS" | awk '{print $1}')
+  fi
 fi
 
 if [ -n "$RESTORE_GOV" ]; then
@@ -38,5 +52,5 @@ if [ -n "$RESTORE_GOV" ]; then
   done
 fi
 
-# Magisk akan otomatis hapus folder module
+# Magisk will automatically remove the module folder
 exit 0
