@@ -112,7 +112,6 @@
             font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.6;
         }
         .log-entry { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--on-surface-variant); }
-        /* Bottom nav: fixed at bottom, JS will lock it via visualViewport */
         .bottom-nav {
             position: fixed;
             bottom: 0; left: 0; right: 0;
@@ -178,7 +177,6 @@
             <div class="info-item"><span class="info-label">Kernel</span><span class="info-value" id="kernel" style="font-size:11px">--</span></div>
             <div class="info-item"><span class="info-label">CPU Cores</span><span class="info-value" id="cpu-cores">--</span></div>
             <div class="info-item"><span class="info-label">Chipset</span><span class="info-value" id="chipset">--</span></div>
-            <div class="info-item"><span class="info-label">Idle Governor</span><span class="info-value" id="idle-gov-main">--</span></div>
         </div>
     </div>
 </div>
@@ -187,15 +185,21 @@
 <div id="tab-tuning" class="tab-content">
     <div class="glass-card">
         <div class="section-header"><span>&#9881;</span> CPU Governor</div>
-        <div class="info-grid">
-            <div class="info-item"><span class="info-label">Idle Governor</span><span class="info-value" id="idle-governor">--</span></div>
-            <div class="info-item"><span class="info-label">Gaming Governor</span><span class="info-value" id="gaming-governor">--</span></div>
+        <div style="margin-bottom:16px">
+            <label class="info-label" style="display:block;margin-bottom:4px">Idle Governor</label>
+            <div style="display:flex;gap:8px;align-items:center">
+                <select id="idle-governor-select" style="flex:1"><option value="">-- Select Idle Governor --</option></select>
+                <button class="btn btn-primary btn-small" id="btn-set-idle">&#10004; Apply</button>
+            </div>
         </div>
-        <select id="governor-select">
-            <option value="">-- Select Gaming Governor --</option>
-        </select>
-        <button class="btn btn-primary" id="btn-set-gov" style="width:100%;margin-top:8px">&#10004; Apply Governor</button>
-        <div class="info-box">&#8505; Changes are applied immediately if a game is currently active.</div>
+        <div>
+            <label class="info-label" style="display:block;margin-bottom:4px">Gaming Governor</label>
+            <div style="display:flex;gap:8px;align-items:center">
+                <select id="governor-select" style="flex:1"><option value="">-- Select Gaming Governor --</option></select>
+                <button class="btn btn-primary btn-small" id="btn-set-gov">&#10004; Apply</button>
+            </div>
+        </div>
+        <div class="info-box">&#8505; Changes are applied immediately if the relevant mode is active.</div>
     </div>
 
     <div class="glass-card">
@@ -246,32 +250,32 @@
 var API_PORT = 9877;
 var toastTimer = null;
 var govSelectDirty = false;
+var idleSelectDirty = false;
 var appSelectDirty = false;
 var govListLoaded = false;
 
+// Cache of current lists for client-side validation
+var cachedGameList = [];
+var cachedAppList = [];
+
 // =====================================================================
-// Fix: Lock bottom-nav to bottom of SCREEN using visualViewport.
-// Uses rAF on first call so offsetHeight is measured after layout.
-// Falls back to CSS bottom:0 when visualViewport is unsupported.
+// Lock bottom-nav to bottom of SCREEN using visualViewport
 // =====================================================================
 (function lockNavToScreen() {
     var nav = document.getElementById('bottom-nav');
-    var NAV_FALLBACK_HEIGHT = 68; // matches --nav-height in CSS
-
+    var NAV_FALLBACK_HEIGHT = 68;
     function reposition() {
         var vv = window.visualViewport;
-        if (!vv) return; // leave CSS position:fixed bottom:0 intact
+        if (!vv) return;
         var navH = nav.offsetHeight || NAV_FALLBACK_HEIGHT;
         nav.style.top    = (vv.offsetTop + vv.height - navH) + 'px';
         nav.style.bottom = 'auto';
         nav.style.left   = vv.offsetLeft + 'px';
         nav.style.width  = vv.width + 'px';
     }
-
     if (window.visualViewport) {
         window.visualViewport.addEventListener('resize', reposition);
         window.visualViewport.addEventListener('scroll', reposition);
-        // Wait one rAF so layout is complete before first measurement
         requestAnimationFrame(reposition);
     }
 })();
@@ -292,7 +296,7 @@ function showToast(msg, ms) {
 }
 
 // =====================================================================
-// fetchJSON — relative path
+// fetchJSON
 // =====================================================================
 function fetchJSON(filename, forceRefresh) {
     var ts = Date.now() + (forceRefresh ? (Math.random() * 1000 | 0) : 0);
@@ -319,7 +323,7 @@ function fetchJSON(filename, forceRefresh) {
 }
 
 // =====================================================================
-// apiCall — no-cors fetch to port 9877
+// apiCall - no-cors fetch to port 9877 (response is opaque)
 // =====================================================================
 function apiCall(action, params, retries) {
     params = params || {};
@@ -365,38 +369,28 @@ function initTabs() {
 }
 
 // =====================================================================
-// Fix #1: updateDeviceInfo with retry — static.json may not be ready
-// immediately on first load, so we retry every 3s until data arrives.
+// Device info with retry
 // =====================================================================
 var deviceInfoLoaded = false;
 function updateDeviceInfo() {
     if (deviceInfoLoaded) return;
     fetchJSON('static.json', true).then(function(data) {
-        if (!data) {
-            setTimeout(updateDeviceInfo, 3000);
-            return;
-        }
+        if (!data) { setTimeout(updateDeviceInfo, 3000); return; }
         var device = data.device || '';
         var kernel = data.kernel || '';
         var cores  = data.cores  || '';
         var chipset = data.chipset || '';
-        var defGov  = data.default_governor || '';
-        // If all fields empty, retry (service.sh may still be starting)
-        if (!device && !kernel && !cores) {
-            setTimeout(updateDeviceInfo, 3000);
-            return;
-        }
-        document.getElementById('device').textContent      = device  || '--';
-        document.getElementById('kernel').textContent      = kernel  || '--';
-        document.getElementById('cpu-cores').textContent   = cores   || '--';
-        document.getElementById('chipset').textContent     = chipset || '--';
-        document.getElementById('idle-gov-main').textContent = defGov || '--';
+        if (!device && !kernel && !cores) { setTimeout(updateDeviceInfo, 3000); return; }
+        document.getElementById('device').textContent    = device  || '--';
+        document.getElementById('kernel').textContent    = kernel  || '--';
+        document.getElementById('cpu-cores').textContent = cores   || '--';
+        document.getElementById('chipset').textContent   = chipset || '--';
         deviceInfoLoaded = true;
     });
 }
 
 // =====================================================================
-// STATUS
+// STATUS (main tab realtime)
 // =====================================================================
 function updateStatus() {
     fetchJSON('dynamic.json').then(function(data) {
@@ -416,83 +410,107 @@ function updateStatus() {
         }
         var temp = parseInt(data.temperature) || 0;
         document.getElementById('temperature').textContent =
-            (temp > 1000 && temp < 200000) ? (temp / 1000).toFixed(1) + '\u00b0C' : '--';
-        // Retry device info if not yet loaded
+            (temp > 1000 && temp < 200000) ? (temp / 1000).toFixed(1) + '°C' : '--';
         if (!deviceInfoLoaded) updateDeviceInfo();
     });
 }
 
 // =====================================================================
-// Governor config — only populate options once, never overwrite user selection
+// Governor config - populate 3 selects (idle, gaming, app-governor)
 // =====================================================================
 function loadGovernorConfig(forceRefresh) {
     fetchJSON('config.json', forceRefresh).then(function(data) {
         if (!data) return;
-        document.getElementById('idle-governor').textContent   = data.default_idle    || '--';
-        document.getElementById('gaming-governor').textContent = data.gaming_governor || '--';
 
-        var mainSel = document.getElementById('governor-select');
+        var idleSel = document.getElementById('idle-governor-select');
+        var gamingSel = document.getElementById('governor-select');
         var appSel  = document.getElementById('app-governor-select');
 
         if (!govListLoaded && data.available_governors && data.available_governors.length > 0) {
-            var savedMain = mainSel.value;
-            var savedApp  = appSel.value;
-            mainSel.innerHTML = '<option value="">-- Select Gaming Governor --</option>';
+            var savedIdle = idleSel.value;
+            var savedGaming = gamingSel.value;
+            var savedApp = appSel.value;
+
+            idleSel.innerHTML = '<option value="">-- Select Idle Governor --</option>';
+            gamingSel.innerHTML = '<option value="">-- Select Gaming Governor --</option>';
             appSel.innerHTML  = '<option value="">-- Select Governor --</option>';
+
             data.available_governors.forEach(function(g) {
-                mainSel.add(new Option(g, g));
+                idleSel.add(new Option(g, g));
+                gamingSel.add(new Option(g, g));
                 appSel.add(new Option(g, g));
             });
             govListLoaded = true;
-            if (!govSelectDirty) mainSel.value = data.gaming_governor || savedMain;
-            if (!appSelectDirty)  appSel.value  = savedApp;
+
+            if (!idleSelectDirty) idleSel.value = data.default_idle || savedIdle;
+            if (!govSelectDirty)  gamingSel.value = data.gaming_governor || savedGaming;
+            if (!appSelectDirty)  appSel.value = savedApp;
         }
     });
 }
 
-function initGovernorBtn() {
-    var sel = document.getElementById('governor-select');
-    sel.addEventListener('focus',      function() { govSelectDirty = true; });
-    sel.addEventListener('mousedown',  function() { govSelectDirty = true; });
-    sel.addEventListener('touchstart', function() { govSelectDirty = true; }, { passive: true });
+function markDirty(el, flag) {
+    var handler = function() { window[flag] = true; };
+    el.addEventListener('focus', handler);
+    el.addEventListener('mousedown', handler);
+    el.addEventListener('touchstart', handler, { passive: true });
+}
 
+function initGovernorBtn() {
+    var gamingSel = document.getElementById('governor-select');
+    var idleSel = document.getElementById('idle-governor-select');
+    markDirty(gamingSel, 'govSelectDirty');
+    markDirty(idleSel, 'idleSelectDirty');
+
+    // Gaming governor apply
     document.getElementById('btn-set-gov').addEventListener('click', function() {
-        var gov = sel.value;
-        if (!gov) { showToast('\u274c Please select a governor first'); return; }
+        var gov = gamingSel.value;
+        if (!gov) { showToast('❌ Select a gaming governor'); return; }
         var btn = this;
-        btn.disabled = true;
-        btn.textContent = '\u23f3 Applying...';
-        showToast('\u23f3 Setting governor: ' + gov);
+        btn.disabled = true; btn.textContent = '⏳...';
         apiCall('set_governor', { governor: gov }, 2).then(function() {
             setTimeout(function() {
+                govListLoaded = false; govSelectDirty = false;
                 loadGovernorConfig(true);
-                govSelectDirty = false;
-                btn.disabled = false;
-                btn.textContent = '\u2714 Apply Governor';
-                showToast('\u2705 Gaming governor set: ' + gov);
+                btn.disabled = false; btn.textContent = '✔ Apply';
+                showToast('✅ Gaming governor: ' + gov);
+            }, 800);
+        });
+    });
+
+    // Idle governor apply
+    document.getElementById('btn-set-idle').addEventListener('click', function() {
+        var gov = idleSel.value;
+        if (!gov) { showToast('❌ Select an idle governor'); return; }
+        var btn = this;
+        btn.disabled = true; btn.textContent = '⏳...';
+        apiCall('set_idle_governor', { governor: gov }, 2).then(function() {
+            setTimeout(function() {
+                govListLoaded = false; idleSelectDirty = false;
+                loadGovernorConfig(true);
+                btn.disabled = false; btn.textContent = '✔ Apply';
+                showToast('✅ Idle governor: ' + gov);
             }, 800);
         });
     });
 }
 
 function initAppSelect() {
-    var appSel = document.getElementById('app-governor-select');
-    appSel.addEventListener('focus',      function() { appSelectDirty = true; });
-    appSel.addEventListener('mousedown',  function() { appSelectDirty = true; });
-    appSel.addEventListener('touchstart', function() { appSelectDirty = true; }, { passive: true });
+    markDirty(document.getElementById('app-governor-select'), 'appSelectDirty');
 }
 
 // =====================================================================
 // GAME LIST
 // =====================================================================
 function refreshGameList() {
-    fetchJSON('games.json').then(function(data) {
+    fetchJSON('games.json', true).then(function(data) {
         var list = document.getElementById('game-list');
         if (!data) { list.innerHTML = '<div class="empty-state">&#9888; Failed to load</div>'; return; }
+        cachedGameList = data.games || [];
         document.getElementById('game-count').textContent = data.count || 0;
-        if (data.games && data.games.length > 0) {
+        if (cachedGameList.length > 0) {
             list.innerHTML = '';
-            data.games.forEach(function(pkg) {
+            cachedGameList.forEach(function(pkg) {
                 var item = document.createElement('div');
                 item.className = 'game-item';
                 var name = document.createElement('span');
@@ -500,7 +518,7 @@ function refreshGameList() {
                 name.textContent = pkg;
                 var btn = document.createElement('button');
                 btn.className = 'btn btn-small btn-remove';
-                btn.textContent = '\u00d7 Remove';
+                btn.textContent = '× Remove';
                 (function(p, b) { b.onclick = function() { removeGame(p, b); }; })(pkg, btn);
                 item.appendChild(name);
                 item.appendChild(btn);
@@ -515,19 +533,38 @@ function refreshGameList() {
 function addGame() {
     var input = document.getElementById('game-package-input');
     var pkg = input.value.trim();
-    if (!pkg) { showToast('\u274c Enter a package name'); return; }
+    if (!pkg) { showToast('❌ Enter a package name'); return; }
     if (!/^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)+$/.test(pkg)) {
-        showToast('\u274c Invalid format. Example: com.example.game'); return;
+        showToast('❌ Invalid format. Example: com.example.game'); return;
+    }
+    // Client-side duplicate check
+    if (cachedGameList.indexOf(pkg) !== -1) {
+        showToast('❌ Already in game list: ' + pkg); return;
+    }
+    // Client-side per-app conflict check
+    for (var i = 0; i < cachedAppList.length; i++) {
+        if (cachedAppList[i].package === pkg) {
+            showToast('❌ Already in per-app list: ' + pkg); return;
+        }
     }
     var btn = document.getElementById('btn-add-game');
-    btn.disabled = true; btn.textContent = '\u23f3 Adding...';
-    showToast('\u23f3 Adding: ' + pkg);
+    btn.disabled = true; btn.textContent = '⏳ Adding...';
     apiCall('add', { pkg: pkg }, 2).then(function() {
         setTimeout(function() {
-            input.value = '';
-            refreshGameList();
-            showToast('\u2705 Added: ' + pkg);
-            btn.disabled = false; btn.textContent = '+ Add Game';
+            // Verify via JSON refresh
+            fetchJSON('games.json', true).then(function(data) {
+                btn.disabled = false; btn.textContent = '+ Add Game';
+                if (data && data.games && data.games.indexOf(pkg) !== -1) {
+                    input.value = '';
+                    cachedGameList = data.games;
+                    document.getElementById('game-count').textContent = data.count || 0;
+                    refreshGameList();
+                    showToast('✅ Added: ' + pkg);
+                } else {
+                    showToast('❌ Failed to add: ' + pkg);
+                    refreshGameList();
+                }
+            });
         }, 800);
     });
 }
@@ -536,7 +573,7 @@ function removeGame(pkg, btn) {
     if (!confirm('Remove "' + pkg + '" from game list?')) return;
     if (btn) { btn.disabled = true; btn.textContent = '...'; }
     apiCall('remove', { pkg: pkg }, 2).then(function() {
-        showToast('\u2705 Removed: ' + pkg);
+        showToast('✅ Removed: ' + pkg);
         setTimeout(refreshGameList, 500);
     });
 }
@@ -544,10 +581,10 @@ function removeGame(pkg, btn) {
 function detectCurrentApp() {
     fetchJSON('dynamic.json').then(function(data) {
         if (!data || !data.foreground || data.foreground === 'unknown') {
-            showToast('\u274c No foreground app detected'); return;
+            showToast('❌ No foreground app detected'); return;
         }
         document.getElementById('game-package-input').value = data.foreground;
-        showToast('\u2713 Detected: ' + data.foreground);
+        showToast('✓ Detected: ' + data.foreground);
     });
 }
 
@@ -555,13 +592,14 @@ function detectCurrentApp() {
 // PER-APP GOVERNOR
 // =====================================================================
 function refreshAppList() {
-    fetchJSON('app_governors.json').then(function(data) {
+    fetchJSON('app_governors.json', true).then(function(data) {
         var list = document.getElementById('app-list');
         if (!data) { list.innerHTML = '<div class="empty-state">&#9888; Failed to load</div>'; return; }
+        cachedAppList = data.app_governors || [];
         document.getElementById('app-count').textContent = data.count || 0;
-        if (data.app_governors && data.app_governors.length > 0) {
+        if (cachedAppList.length > 0) {
             list.innerHTML = '';
-            data.app_governors.forEach(function(app) {
+            cachedAppList.forEach(function(app) {
                 var item = document.createElement('div');
                 item.className = 'app-item';
                 var info = document.createElement('div');
@@ -576,7 +614,7 @@ function refreshAppList() {
                 info.appendChild(govDiv);
                 var btn = document.createElement('button');
                 btn.className = 'btn btn-small btn-remove';
-                btn.textContent = '\u00d7';
+                btn.textContent = '×';
                 (function(p, b) { b.onclick = function() { removeAppGovernor(p, b); }; })(app.package, btn);
                 item.appendChild(info);
                 item.appendChild(btn);
@@ -591,21 +629,39 @@ function refreshAppList() {
 function addAppGovernor() {
     var pkg = document.getElementById('app-package-input').value.trim();
     var gov = document.getElementById('app-governor-select').value;
-    if (!pkg || !gov) { showToast('\u274c Enter package and select a governor'); return; }
+    if (!pkg || !gov) { showToast('❌ Enter package and select a governor'); return; }
     if (!/^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)+$/.test(pkg)) {
-        showToast('\u274c Invalid package format'); return;
+        showToast('❌ Invalid package format'); return;
+    }
+    // Client-side game list conflict check
+    if (cachedGameList.indexOf(pkg) !== -1) {
+        showToast('❌ Already in game list: ' + pkg); return;
     }
     var btn = document.getElementById('btn-add-app');
-    btn.disabled = true; btn.textContent = '\u23f3 Adding...';
-    showToast('\u23f3 Setting: ' + pkg + ' \u2192 ' + gov);
+    btn.disabled = true; btn.textContent = '⏳ Adding...';
     apiCall('set_app_governor', { pkg: pkg, governor: gov }, 2).then(function() {
         setTimeout(function() {
-            document.getElementById('app-package-input').value = '';
-            appSelectDirty = false;
-            document.getElementById('app-governor-select').value = '';
-            refreshAppList();
-            showToast('\u2705 ' + pkg + ' \u2192 ' + gov);
-            btn.disabled = false; btn.textContent = '\u2714 Add App Governor';
+            // Verify via JSON refresh
+            fetchJSON('app_governors.json', true).then(function(data) {
+                btn.disabled = false; btn.textContent = '✔ Add App Governor';
+                if (data && data.app_governors) {
+                    var found = false;
+                    for (var i = 0; i < data.app_governors.length; i++) {
+                        if (data.app_governors[i].package === pkg) { found = true; break; }
+                    }
+                    if (found) {
+                        document.getElementById('app-package-input').value = '';
+                        appSelectDirty = false;
+                        document.getElementById('app-governor-select').value = '';
+                        cachedAppList = data.app_governors;
+                        refreshAppList();
+                        showToast('✅ ' + pkg + ' → ' + gov);
+                    } else {
+                        showToast('❌ Failed to add: ' + pkg);
+                        refreshAppList();
+                    }
+                }
+            });
         }, 800);
     });
 }
@@ -614,7 +670,7 @@ function removeAppGovernor(pkg, btn) {
     if (!confirm('Remove custom governor for "' + pkg + '"?')) return;
     if (btn) { btn.disabled = true; btn.textContent = '...'; }
     apiCall('remove_app_governor', { pkg: pkg }, 2).then(function() {
-        showToast('\u2705 Removed: ' + pkg);
+        showToast('✅ Removed: ' + pkg);
         setTimeout(refreshAppList, 500);
     });
 }
@@ -625,6 +681,7 @@ function removeAppGovernor(pkg, btn) {
 function refreshLog() {
     var xhr = new XMLHttpRequest();
     xhr.open('GET', '/log.txt?_=' + Date.now(), true);
+    try { xhr.setRequestHeader('Cache-Control', 'no-cache, no-store'); } catch(e) {}
     xhr.timeout = 5000;
     xhr.onload = function() {
         var container = document.getElementById('log-container');
@@ -676,34 +733,27 @@ function initialize() {
     refreshAppList();
     refreshLog();
 
-    // Status polling every 2s
+    // Status polling every 2s (mode, governor, foreground, temp)
     setInterval(updateStatus, 2000);
 
-    // Auto-refresh tuning tab data every 3s (game list, app list, config labels)
+    // Auto-refresh tuning tab data every 3s
     setInterval(function() {
         if (document.getElementById('tab-tuning').classList.contains('active')) {
             refreshGameList();
             refreshAppList();
-            if (!govSelectDirty) loadGovernorConfig(false);
+            if (!govSelectDirty && !idleSelectDirty) loadGovernorConfig(false);
         }
     }, 3000);
 
-    // Config label polling every 5s on main tab
-    setInterval(function() {
-        if (!govSelectDirty && document.getElementById('tab-main').classList.contains('active')) {
-            loadGovernorConfig(false);
-        }
-    }, 5000);
-
-    // Device info retry polling every 5s until loaded
+    // Device info retry every 5s until loaded
     setInterval(function() {
         if (!deviceInfoLoaded) updateDeviceInfo();
     }, 5000);
 
-    // Log auto-refresh when log tab active
+    // Log auto-refresh every 3s when log tab active
     setInterval(function() {
         if (document.getElementById('tab-log').classList.contains('active')) refreshLog();
-    }, 5000);
+    }, 3000);
 }
 
 if (document.readyState === 'loading') {

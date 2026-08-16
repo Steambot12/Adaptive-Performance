@@ -66,27 +66,7 @@ if [ -s "$APP_GOVERNORS" ]; then
   done < "$APP_GOVERNORS"
 fi
 
-if [ ! -f "$GAME_PACKAGES" ]; then
-  cat > "$GAME_PACKAGES" << 'EOF'
-com.miHoYo.GenshinImpact
-com.HoYoverse.hkrpgoversea
-com.activision.callofduty.shooter
-com.mobile.legends
-com.garena.game.df
-com.garena.game.fcthai
-com.proxima.dfm
-com.YoStarEN.Kuro.WutheringWaves
-com.tencent.ig
-com.pubg.krmobile
-com.pubg.imobile
-com.supercell.clashofclans
-com.supercell.clashroyale
-com.riotgames.league.wildrift
-com.dts.freefireth
-com.dts.freefiremax
-com.levelinfinite.hotta.gp
-EOF
-fi
+[ ! -f "$GAME_PACKAGES" ] && touch "$GAME_PACKAGES"
 chmod 666 "$GAME_PACKAGES" 2>/dev/null
 
 # ============================================================
@@ -403,6 +383,28 @@ set_gaming_governor() {
   return 0
 }
 
+set_idle_governor() {
+  local gov="$1"
+  [ -z "$gov" ] && return 1
+  gov=$(echo "$gov" | tr -d ' \r\n\t')
+  echo "$AVAILABLE_GOVERNORS" | grep -q "$gov" || { log "ERROR: Governor not available: $gov"; return 1; }
+  echo "$gov" > "$DEFAULT_GOV_FILE"
+  chmod 666 "$DEFAULT_GOV_FILE" 2>/dev/null
+  sync
+  DEFAULT_GOVERNOR="$gov"
+  log "Idle governor set: $gov"
+  generate_config_json
+  generate_static_json
+  local fg=$(get_foreground_app)
+  local app_gov
+  app_gov=$(get_app_governor "$fg" 2>/dev/null)
+  if [ $? -ne 0 ] && ! is_game "$fg"; then
+    log "Idle active, apply immediately: $gov"
+    restore_governor_config "$gov"
+  fi
+  return 0
+}
+
 # ============================================================
 # JSON GENERATORS
 # ============================================================
@@ -616,6 +618,13 @@ start_api_server() {
         [ -z "$GOVERNOR" ] && RESPONSE='{"status":"error","message":"Missing governor"}' || {
           set_gaming_governor "$GOVERNOR" \
             && RESPONSE='{"status":"success","message":"Governor set","governor":"'"$GOVERNOR"'"}' \
+            || RESPONSE='{"status":"error","message":"Governor unavailable"}'
+        }
+        ;;
+      set_idle_governor)
+        [ -z "$GOVERNOR" ] && RESPONSE='{"status":"error","message":"Missing governor"}' || {
+          set_idle_governor "$GOVERNOR" \
+            && RESPONSE='{"status":"success","message":"Idle governor set","governor":"'"$GOVERNOR"'"}' \
             || RESPONSE='{"status":"error","message":"Governor unavailable"}'
         }
         ;;

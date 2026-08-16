@@ -161,6 +161,7 @@ Port **9877**, localhost only.
 | `/?action=add` | `pkg` | Add game package |
 | `/?action=remove` | `pkg` | Remove game package |
 | `/?action=set_governor` | `governor` | Set gaming governor |
+| `/?action=set_idle_governor` | `governor` | Set idle governor |
 | `/?action=set_app_governor` | `pkg`, `governor` | Set per-app governor |
 | `/?action=remove_app_governor` | `pkg` | Remove per-app governor |
 | `/?action=get_status` | — | Get current status |
@@ -259,16 +260,23 @@ The uninstall restores the original CPU governor and removes all config and log 
 - Version string mismatch: customize.sh showed v1.1, now v1.3
 - `killall httpd` in HTTP server replaced with targeted PID kill to avoid killing unrelated httpd processes
 - API server response timing improved (reduced sleep from 0.3s to 0.2s)
+- Game package add now verifies success via JSON refresh (no-cors response is opaque)
+- Per-app governor add now verifies success via JSON refresh
+- Dashboard log tab now auto-refreshes every 3s (was 5s)
+- Duplicate game package and per-app conflict detection with error notifications
+- Removed idle governor from main dashboard (moved to tuning tab)
 
 **Added**
 - Governor auto-detection for `vorpal` and `blu_schedutil`
 - Exynos, Unisoc, and Tensor chipset detection
-- More default game packages (Honkai Star Rail, Free Fire, Wild Rift, Clash of Clans, etc.)
+- `set_idle_governor` API endpoint — change idle governor from dashboard or CLI
+- Idle and gaming governor both editable via dropdowns in tuning tab
 - `get_status` API endpoint documented
 
 **Improved**
 - Uninstall now tries saved stock governor before generic fallback
 - Service process cleanup more reliable (targeted pgrep instead of killall)
+- Default game list now ships empty — user adds their own packages
 
 ### v1.2 (March 2026)
 
