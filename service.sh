@@ -234,13 +234,42 @@ log "Available governors: $AVAILABLE_GOVERNORS"
 # ============================================================
 # GOVERNOR BACKUP & RESTORE
 # ============================================================
+# Discover unique cpufreq policy paths (one per cluster: LITTLE/big/prime)
+discover_policies() {
+  local policies="" i=0
+  while [ $i -lt $NUM_CORES ]; do
+    local cpufreq="${CPU_BASE}/cpu${i}/cpufreq"
+    if [ -d "$cpufreq" ]; then
+      local policy_path=$(readlink -f "$cpufreq" 2>/dev/null || echo "$cpufreq")
+      case " $policies " in
+        *" $policy_path "*) ;;
+        *) policies="$policies $policy_path" ;;
+      esac
+    fi
+    i=$((i + 1))
+  done
+  for p in ${CPU_BASE}/cpufreq/policy*; do
+    [ -d "$p" ] || continue
+    case " $policies " in
+      *" $p "*) ;;
+      *) policies="$policies $p" ;;
+    esac
+  done
+  echo "$policies"
+}
+
 backup_initial_config() {
   log "Backing up initial kernel config..."
   local cpu0="${CPU_BASE}/cpu0/cpufreq"
   local current_gov=$(cat "$cpu0/scaling_governor" 2>/dev/null)
   [ -n "$current_gov" ] && echo "$current_gov" > "$STOCK_CONFIG_DIR/stock_governor.txt"
-  cat "$cpu0/scaling_min_freq" 2>/dev/null > "$STOCK_CONFIG_DIR/scaling_min_freq.txt"
-  cat "$cpu0/scaling_max_freq" 2>/dev/null > "$STOCK_CONFIG_DIR/scaling_max_freq.txt"
+  # Per-cluster freq limits — each cluster (little/big/prime) has its own max
+  local policy label
+  for policy in $(discover_policies); do
+    label=$(basename "$policy")
+    cat "$policy/scaling_min_freq" 2>/dev/null > "$STOCK_CONFIG_DIR/${label}.min"
+    cat "$policy/scaling_max_freq" 2>/dev/null > "$STOCK_CONFIG_DIR/${label}.max"
+  done
   [ -n "$current_gov" ] && backup_governor_tunables "$current_gov"
   log "Backup done. Stock governor: $current_gov"
 }
@@ -272,32 +301,8 @@ restore_governor_config() {
   local fail=0
   local ok=0
 
-  # Collect all unique policy paths (policy0, policy4, policy7, etc.)
-  # Each policy controls a cluster of cores (LITTLE, big, prime)
-  local policies=""
-  local i=0
-  while [ $i -lt $NUM_CORES ]; do
-    local cpufreq="${CPU_BASE}/cpu${i}/cpufreq"
-    if [ -d "$cpufreq" ]; then
-      # Resolve the real policy path (cpufreq may be a symlink to policyN)
-      local policy_path=$(readlink -f "$cpufreq" 2>/dev/null || echo "$cpufreq")
-      # Only add unique policies
-      case " $policies " in
-        *" $policy_path "*) ;;
-        *) policies="$policies $policy_path" ;;
-      esac
-    fi
-    i=$((i + 1))
-  done
-
-  # Also scan /sys/devices/system/cpu/cpufreq/policy* directly
-  for p in ${CPU_BASE}/cpufreq/policy*; do
-    [ -d "$p" ] || continue
-    case " $policies " in
-      *" $p "*) ;;
-      *) policies="$policies $p" ;;
-    esac
-  done
+  # Collect all unique policy paths (one per cluster: LITTLE, big, prime)
+  local policies=$(discover_policies)
 
   for policy in $policies; do
     [ -f "$policy/scaling_governor" ] || continue
@@ -365,12 +370,13 @@ restore_governor_config() {
     fi
   done
 
-  # Restore freq limits from backup to all policies
+  # Restore per-cluster freq limits from backup (each cluster keeps its own max)
   for policy in $policies; do
-    [ -f "$STOCK_CONFIG_DIR/scaling_min_freq.txt" ] && \
-      cat "$STOCK_CONFIG_DIR/scaling_min_freq.txt" > "$policy/scaling_min_freq" 2>/dev/null
-    [ -f "$STOCK_CONFIG_DIR/scaling_max_freq.txt" ] && \
-      cat "$STOCK_CONFIG_DIR/scaling_max_freq.txt" > "$policy/scaling_max_freq" 2>/dev/null
+    local label=$(basename "$policy")
+    [ -f "$STOCK_CONFIG_DIR/${label}.min" ] && \
+      cat "$STOCK_CONFIG_DIR/${label}.min" > "$policy/scaling_min_freq" 2>/dev/null
+    [ -f "$STOCK_CONFIG_DIR/${label}.max" ] && \
+      cat "$STOCK_CONFIG_DIR/${label}.max" > "$policy/scaling_max_freq" 2>/dev/null
   done
 
   # Backup and restore tunables for target governor
