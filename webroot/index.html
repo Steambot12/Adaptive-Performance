@@ -464,29 +464,13 @@ function initGovernorBtn() {
         btn.textContent = '\u23f3 Applying...';
         showToast('\u23f3 Setting governor: ' + gov);
         apiCall('set_governor', { governor: gov }, 2).then(function() {
-            var tries = 0;
-            function poll() {
-                setTimeout(function() {
-                    fetchJSON('config.json', true).then(function(d) {
-                        if (d && d.gaming_governor === gov) {
-                            document.getElementById('gaming-governor').textContent = gov;
-                            showToast('\u2705 Gaming governor set: ' + gov);
-                            govSelectDirty = false;
-                            btn.disabled = false;
-                            btn.textContent = '\u2714 Apply Governor';
-                        } else if (++tries < 8) {
-                            poll();
-                        } else {
-                            document.getElementById('gaming-governor').textContent = gov;
-                            showToast('\u2705 Applied (verify in log)');
-                            govSelectDirty = false;
-                            btn.disabled = false;
-                            btn.textContent = '\u2714 Apply Governor';
-                        }
-                    });
-                }, 700);
-            }
-            poll();
+            setTimeout(function() {
+                loadGovernorConfig(true);
+                govSelectDirty = false;
+                btn.disabled = false;
+                btn.textContent = '\u2714 Apply Governor';
+                showToast('\u2705 Gaming governor set: ' + gov);
+            }, 800);
         });
     });
 }
@@ -539,25 +523,12 @@ function addGame() {
     btn.disabled = true; btn.textContent = '\u23f3 Adding...';
     showToast('\u23f3 Adding: ' + pkg);
     apiCall('add', { pkg: pkg }, 2).then(function() {
-        var tries = 0;
-        function poll() {
-            setTimeout(function() {
-                fetchJSON('games.json', true).then(function(d) {
-                    if (d && d.games && d.games.indexOf(pkg) !== -1) {
-                        input.value = '';
-                        refreshGameList();
-                        showToast('\u2705 Added: ' + pkg);
-                        btn.disabled = false; btn.textContent = '+ Add Game';
-                    } else if (++tries < 8) {
-                        poll();
-                    } else {
-                        showToast('\u274c Failed to add (duplicate or conflict)');
-                        btn.disabled = false; btn.textContent = '+ Add Game';
-                    }
-                });
-            }, 600);
-        }
-        poll();
+        setTimeout(function() {
+            input.value = '';
+            refreshGameList();
+            showToast('\u2705 Added: ' + pkg);
+            btn.disabled = false; btn.textContent = '+ Add Game';
+        }, 800);
     });
 }
 
@@ -566,7 +537,7 @@ function removeGame(pkg, btn) {
     if (btn) { btn.disabled = true; btn.textContent = '...'; }
     apiCall('remove', { pkg: pkg }, 2).then(function() {
         showToast('\u2705 Removed: ' + pkg);
-        setTimeout(refreshGameList, 1000);
+        setTimeout(refreshGameList, 500);
     });
 }
 
@@ -628,29 +599,14 @@ function addAppGovernor() {
     btn.disabled = true; btn.textContent = '\u23f3 Adding...';
     showToast('\u23f3 Setting: ' + pkg + ' \u2192 ' + gov);
     apiCall('set_app_governor', { pkg: pkg, governor: gov }, 2).then(function() {
-        var tries = 0;
-        function poll() {
-            setTimeout(function() {
-                fetchJSON('app_governors.json', true).then(function(d) {
-                    var added = d && d.app_governors &&
-                        d.app_governors.some(function(a) { return a.package === pkg; });
-                    if (added) {
-                        document.getElementById('app-package-input').value = '';
-                        appSelectDirty = false;
-                        document.getElementById('app-governor-select').value = '';
-                        refreshAppList();
-                        showToast('\u2705 ' + pkg + ' \u2192 ' + gov);
-                        btn.disabled = false; btn.textContent = '\u2714 Add App Governor';
-                    } else if (++tries < 8) {
-                        poll();
-                    } else {
-                        showToast('\u274c Failed (conflict with game list?)');
-                        btn.disabled = false; btn.textContent = '\u2714 Add App Governor';
-                    }
-                });
-            }, 600);
-        }
-        poll();
+        setTimeout(function() {
+            document.getElementById('app-package-input').value = '';
+            appSelectDirty = false;
+            document.getElementById('app-governor-select').value = '';
+            refreshAppList();
+            showToast('\u2705 ' + pkg + ' \u2192 ' + gov);
+            btn.disabled = false; btn.textContent = '\u2714 Add App Governor';
+        }, 800);
     });
 }
 
@@ -659,7 +615,7 @@ function removeAppGovernor(pkg, btn) {
     if (btn) { btn.disabled = true; btn.textContent = '...'; }
     apiCall('remove_app_governor', { pkg: pkg }, 2).then(function() {
         showToast('\u2705 Removed: ' + pkg);
-        setTimeout(refreshAppList, 1000);
+        setTimeout(refreshAppList, 500);
     });
 }
 
@@ -723,9 +679,20 @@ function initialize() {
     // Status polling every 2s
     setInterval(updateStatus, 2000);
 
-    // Config label polling every 5s (no dropdown value overwrite)
+    // Auto-refresh tuning tab data every 3s (game list, app list, config labels)
     setInterval(function() {
-        if (!govSelectDirty) loadGovernorConfig(false);
+        if (document.getElementById('tab-tuning').classList.contains('active')) {
+            refreshGameList();
+            refreshAppList();
+            if (!govSelectDirty) loadGovernorConfig(false);
+        }
+    }, 3000);
+
+    // Config label polling every 5s on main tab
+    setInterval(function() {
+        if (!govSelectDirty && document.getElementById('tab-main').classList.contains('active')) {
+            loadGovernorConfig(false);
+        }
     }, 5000);
 
     // Device info retry polling every 5s until loaded
