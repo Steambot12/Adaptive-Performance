@@ -1,0 +1,32 @@
+name: Build Flashable ZIP
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Get version from module.prop
+        id: ver
+        run: |
+          VERSION=$(grep '^version=' module.prop | cut -d= -f2)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Build flashable ZIP
+        run: |
+          ZIP_NAME="AdaptivePerformance-v${{ steps.ver.outputs.version }}.zip"
+          zip -r9 "$ZIP_NAME" . \
+            -x '.git/*' '.github/*' '*.md' '.gitignore' '.gitattributes'
+          echo "zip_name=$ZIP_NAME" >> "$GITHUB_ENV"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: ${{ env.zip_name }}
+          generate_release_notes: true
