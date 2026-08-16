@@ -97,14 +97,130 @@ detect_chipset() {
 }
 CHIPSET=$(detect_chipset)
 
-# Detailed chipset name for display (tries multiple props)
+# SoC model code → marketing name lookup
+soc_marketing_name() {
+  case "$1" in
+    # Qualcomm Snapdragon — 8 series
+    SM8750)  echo "Snapdragon 8 Elite" ;;
+    SM8650)  echo "Snapdragon 8 Gen 3" ;;
+    SM8550)  echo "Snapdragon 8 Gen 2" ;;
+    SM8475)  echo "Snapdragon 8+ Gen 1" ;;
+    SM8450)  echo "Snapdragon 8 Gen 1" ;;
+    SM8350)  echo "Snapdragon 888" ;;
+    SM8250)  echo "Snapdragon 865" ;;
+    SM8150)  echo "Snapdragon 855" ;;
+    # Qualcomm Snapdragon — 7 series
+    SM7675)  echo "Snapdragon 7+ Gen 3" ;;
+    SM7550)  echo "Snapdragon 7 Gen 3" ;;
+    SM7475)  echo "Snapdragon 7+ Gen 2" ;;
+    SM7450)  echo "Snapdragon 7 Gen 1" ;;
+    SM7435)  echo "Snapdragon 7s Gen 2" ;;
+    SM7325)  echo "Snapdragon 778G" ;;
+    SM7350)  echo "Snapdragon 780G" ;;
+    SM7225)  echo "Snapdragon 750G" ;;
+    SM7150)  echo "Snapdragon 730" ;;
+    SM7125)  echo "Snapdragon 720G" ;;
+    # Qualcomm Snapdragon — 6 series
+    SM6550)  echo "Snapdragon 6 Gen 3" ;;
+    SM6450)  echo "Snapdragon 6 Gen 1" ;;
+    SM6375)  echo "Snapdragon 695" ;;
+    SM6350)  echo "Snapdragon 690" ;;
+    SM6225)  echo "Snapdragon 680" ;;
+    SM6150)  echo "Snapdragon 675" ;;
+    SM6115)  echo "Snapdragon 662" ;;
+    # Qualcomm Snapdragon — 4 series
+    SM4635)  echo "Snapdragon 4s Gen 2" ;;
+    SM4450)  echo "Snapdragon 4 Gen 2" ;;
+    SM4375)  echo "Snapdragon 4 Gen 1" ;;
+    SM4350)  echo "Snapdragon 480+" ;;
+    SM4250)  echo "Snapdragon 460" ;;
+    # Kona/Lahaina/Taro/Kalama/Pineapple (codenames some ROMs report)
+    kona)       echo "Snapdragon 865" ;;
+    lahaina)    echo "Snapdragon 888" ;;
+    taro)       echo "Snapdragon 8 Gen 1" ;;
+    kalama)     echo "Snapdragon 8 Gen 2" ;;
+    pineapple)  echo "Snapdragon 8 Gen 3" ;;
+    sun)        echo "Snapdragon 8 Elite" ;;
+    # MediaTek Dimensity — 9000 series
+    MT6989)  echo "Dimensity 9400" ;;
+    MT6991)  echo "Dimensity 9400+" ;;
+    MT6985)  echo "Dimensity 9200" ;;
+    MT6983)  echo "Dimensity 9000" ;;
+    MT6986)  echo "Dimensity 9200+" ;;
+    # MediaTek Dimensity — 8000 series
+    MT6896)  echo "Dimensity 8300" ;;
+    MT6895)  echo "Dimensity 8100" ;;
+    MT6893)  echo "Dimensity 8000" ;;
+    # MediaTek Dimensity — 7000 series
+    MT6878)  echo "Dimensity 7300" ;;
+    MT6886)  echo "Dimensity 7200" ;;
+    # MediaTek Dimensity — 6000 series
+    MT6855)  echo "Dimensity 6100+" ;;
+    MT6835)  echo "Dimensity 6080" ;;
+    # MediaTek Dimensity — 1000/1200 series
+    MT6891)  echo "Dimensity 1200" ;;
+    MT6889)  echo "Dimensity 1000+" ;;
+    MT6877)  echo "Dimensity 1080" ;;
+    MT6875)  echo "Dimensity 1000" ;;
+    # MediaTek Helio
+    MT6873)  echo "Dimensity 800" ;;
+    MT6853)  echo "Dimensity 720" ;;
+    MT6833)  echo "Dimensity 700" ;;
+    MT6785)  echo "Helio G95" ;;
+    MT6779)  echo "Helio P90" ;;
+    MT6769)  echo "Helio G80" ;;
+    MT6768)  echo "Helio G85" ;;
+    MT6765)  echo "Helio P35" ;;
+    MT6762)  echo "Helio P22" ;;
+    MT6761)  echo "Helio A22" ;;
+    MT6771)  echo "Helio P60" ;;
+    # Samsung Exynos
+    exynos2400|s5e9945) echo "Exynos 2400" ;;
+    exynos2200|s5e9925) echo "Exynos 2200" ;;
+    exynos2100|s5e9840) echo "Exynos 2100" ;;
+    exynos1480)         echo "Exynos 1480" ;;
+    exynos1380|s5e8835) echo "Exynos 1380" ;;
+    exynos1280|s5e8825) echo "Exynos 1280" ;;
+    exynos1080|s5e9815) echo "Exynos 1080" ;;
+    exynos990|s5e9830)  echo "Exynos 990" ;;
+    exynos9825|s5e9825) echo "Exynos 9825" ;;
+    exynos9820|s5e9820) echo "Exynos 9820" ;;
+    exynos9810|s5e9810) echo "Exynos 9810" ;;
+    exynos7904) echo "Exynos 7904" ;;
+    exynos850|s5e3830)  echo "Exynos 850" ;;
+    # Google Tensor
+    gs101)    echo "Google Tensor" ;;
+    gs201)    echo "Google Tensor G2" ;;
+    zuma)     echo "Google Tensor G3" ;;
+    zumapro)  echo "Google Tensor G4" ;;
+    # Unisoc
+    ums512)   echo "Unisoc T610" ;;
+    ums9230)  echo "Unisoc T616" ;;
+    ums9231)  echo "Unisoc T618" ;;
+    ums9622)  echo "Unisoc T760" ;;
+    ums9620)  echo "Unisoc T770" ;;
+    ums9610)  echo "Unisoc T820" ;;
+    ums312)   echo "Unisoc SC9863A" ;;
+    ud710)    echo "Unisoc T740" ;;
+    # No match
+    *) echo "" ;;
+  esac
+}
+
+# Detailed chipset name for display
 detect_chipset_display() {
-  local name=""
-  # Try specific props in order of detail
+  local raw="" marketing=""
   for prop in ro.soc.model ro.hardware.chipname ro.board.platform ro.hardware; do
-    name=$(getprop "$prop" 2>/dev/null)
-    [ -n "$name" ] && [ "$name" != "unknown" ] && { echo "$name"; return; }
+    raw=$(getprop "$prop" 2>/dev/null)
+    [ -n "$raw" ] && [ "$raw" != "unknown" ] || continue
+    marketing=$(soc_marketing_name "$raw")
+    if [ -n "$marketing" ]; then
+      echo "$marketing"
+      return
+    fi
   done
+  # Fallback: return raw prop if no marketing name matched
+  [ -n "$raw" ] && [ "$raw" != "unknown" ] && { echo "$raw"; return; }
   echo "$CHIPSET"
 }
 CHIPSET_DISPLAY=$(detect_chipset_display)

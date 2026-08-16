@@ -2,247 +2,443 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>&#9889; Adaptive Performance</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Adaptive Performance</title>
     <style>
         :root {
-            --primary: #6750A4;
-            --on-primary: #FFFFFF;
-            --on-surface: #E6E1E5;
-            --on-surface-variant: #CAC4CF;
-            --error: #F2B8B5;
-            --nav-height: 68px;
+            --bg-primary: #0a0e1a;
+            --bg-secondary: #111827;
+            --bg-card: #1a2035;
+            --bg-card-hover: #1f2847;
+            --bg-input: #0d1220;
+            --accent: #6366f1;
+            --accent-glow: rgba(99, 102, 241, 0.3);
+            --accent-soft: rgba(99, 102, 241, 0.15);
+            --success: #22c55e;
+            --success-soft: rgba(34, 197, 94, 0.15);
+            --warning: #f59e0b;
+            --warning-soft: rgba(245, 158, 11, 0.15);
+            --danger: #ef4444;
+            --danger-soft: rgba(239, 68, 68, 0.15);
+            --gaming: #ec4899;
+            --gaming-glow: rgba(236, 72, 153, 0.4);
+            --idle: #38bdf8;
+            --idle-glow: rgba(56, 189, 248, 0.3);
+            --custom: #a78bfa;
+            --custom-glow: rgba(167, 139, 250, 0.3);
+            --thermal: #f97316;
+            --thermal-glow: rgba(249, 115, 22, 0.3);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --border: rgba(255, 255, 255, 0.06);
+            --border-light: rgba(255, 255, 255, 0.1);
+            --nav-height: 64px;
+            --radius: 16px;
+            --radius-sm: 10px;
         }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body {
-            font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
-            color: var(--on-surface);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
             min-height: 100vh;
-            padding-bottom: var(--nav-height);
+            min-height: 100dvh;
+            padding-bottom: calc(var(--nav-height) + 16px);
+            overflow-x: hidden;
         }
-        .glass-card {
-            background: rgba(255,255,255,0.05);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 20px;
-            padding: 20px;
-            margin: 16px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-        }
+
+        /* Header */
         .header {
-            background: rgba(103,80,164,0.2);
-            backdrop-filter: blur(20px);
-            padding: 20px;
+            background: linear-gradient(180deg, rgba(99, 102, 241, 0.08) 0%, transparent 100%);
+            padding: 20px 16px 16px;
             text-align: center;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
             position: sticky; top: 0; z-index: 100;
+            backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border);
         }
-        .header h1 { font-size: 24px; font-weight: 500; margin-bottom: 4px; }
-        .header .subtitle { font-size: 12px; color: var(--on-surface-variant); }
-        .tab-content { display: none; animation: fadeIn 0.3s ease; }
+        .header-title {
+            font-size: 20px; font-weight: 700; letter-spacing: -0.3px;
+            background: linear-gradient(135deg, #f1f5f9 0%, #94a3b8 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .header-sub {
+            font-size: 11px; color: var(--text-muted); margin-top: 2px;
+            letter-spacing: 0.5px; text-transform: uppercase;
+        }
+
+        /* Page container */
+        .page { padding: 0 12px; }
+        .tab-content { display: none; animation: slideUp 0.25s ease-out; }
         .tab-content.active { display: block; }
-        @keyframes fadeIn { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
-        .status-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin: 16px; }
-        .status-item {
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
-            border-radius: 16px; padding: 16px; text-align: center;
+        @keyframes slideUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Mode hero card */
+        .mode-hero {
+            margin: 12px 0;
+            padding: 24px 20px;
+            border-radius: var(--radius);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            transition: all 0.5s ease;
         }
-        .status-label { font-size: 12px; color: var(--on-surface-variant); margin-bottom: 8px; }
-        .status-value { font-size: 18px; font-weight: 500; }
-        .status-value.idle { color: #90CAF9; }
-        .status-value.gaming { color: #F48FB1; }
-        .status-value.custom { color: #CE93D8; }
-        .status-value.thermal_throttle { color: #FF8A65; }
-        .info-grid { display: grid; gap: 12px; }
-        .info-item {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 12px; background: rgba(255,255,255,0.03); border-radius: 12px;
+        .mode-hero::before {
+            content: '';
+            position: absolute; inset: 0;
+            border-radius: var(--radius);
+            opacity: 0.12;
+            transition: background 0.5s ease;
         }
-        .info-label { font-size: 14px; color: var(--on-surface-variant); }
-        .info-value { font-size: 14px; font-weight: 500; }
-        .section-header { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; font-size: 18px; font-weight: 500; }
-        .badge {
-            display: inline-block; padding: 4px 12px; border-radius: 12px;
-            font-size: 12px; font-weight: 500; background: rgba(103,80,164,0.3); margin-left: auto;
+        .mode-hero.idle { background: linear-gradient(135deg, rgba(56, 189, 248, 0.06) 0%, var(--bg-card) 100%); border-color: rgba(56, 189, 248, 0.15); }
+        .mode-hero.gaming { background: linear-gradient(135deg, rgba(236, 72, 153, 0.08) 0%, var(--bg-card) 100%); border-color: rgba(236, 72, 153, 0.2); }
+        .mode-hero.custom { background: linear-gradient(135deg, rgba(167, 139, 250, 0.08) 0%, var(--bg-card) 100%); border-color: rgba(167, 139, 250, 0.2); }
+        .mode-hero.thermal_throttle { background: linear-gradient(135deg, rgba(249, 115, 22, 0.08) 0%, var(--bg-card) 100%); border-color: rgba(249, 115, 22, 0.2); }
+
+        .mode-indicator {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 6px 16px; border-radius: 20px;
+            font-size: 11px; font-weight: 700;
+            letter-spacing: 1.5px; text-transform: uppercase;
+            margin-bottom: 12px;
         }
-        .btn {
-            padding: 12px 24px; border: none; border-radius: 12px;
-            font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.3s;
-            background: rgba(103,80,164,0.3); color: var(--on-surface);
-            border: 1px solid rgba(255,255,255,0.1);
+        .mode-indicator .dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
         }
-        .btn:hover:not(:disabled) { background: rgba(103,80,164,0.5); transform: translateY(-2px); }
-        .btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-        .btn-primary { background: var(--primary); color: var(--on-primary); border: none; }
-        .btn-primary:hover:not(:disabled) { background: #7965af; }
-        .btn-small { padding: 8px 16px; font-size: 12px; }
-        .btn-remove {
-            padding: 6px 12px; font-size: 11px;
-            background: rgba(242,184,181,0.2); color: var(--error);
-            border: 1px solid rgba(242,184,181,0.3);
+        @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.5; transform: scale(0.8); } }
+        .mode-hero.idle .mode-indicator { background: rgba(56, 189, 248, 0.15); color: var(--idle); }
+        .mode-hero.idle .dot { background: var(--idle); box-shadow: 0 0 8px var(--idle-glow); }
+        .mode-hero.gaming .mode-indicator { background: rgba(236, 72, 153, 0.15); color: var(--gaming); }
+        .mode-hero.gaming .dot { background: var(--gaming); box-shadow: 0 0 8px var(--gaming-glow); }
+        .mode-hero.custom .mode-indicator { background: rgba(167, 139, 250, 0.15); color: var(--custom); }
+        .mode-hero.custom .dot { background: var(--custom); box-shadow: 0 0 8px var(--custom-glow); }
+        .mode-hero.thermal_throttle .mode-indicator { background: rgba(249, 115, 22, 0.15); color: var(--thermal); }
+        .mode-hero.thermal_throttle .dot { background: var(--thermal); box-shadow: 0 0 8px var(--thermal-glow); }
+
+        .mode-governor {
+            font-size: 28px; font-weight: 700; letter-spacing: -0.5px;
+            margin-bottom: 4px;
         }
-        .btn-remove:hover:not(:disabled) { background: rgba(242,184,181,0.4); }
-        select, input[type="text"] {
-            width: 100%; padding: 12px; border-radius: 12px;
-            background: rgba(255,255,255,0.05);
-            border: 1px solid rgba(255,255,255,0.1);
-            color: var(--on-surface);
-            font-size: 16px;
+        .mode-label { font-size: 12px; color: var(--text-muted); }
+
+        /* Stat chips */
+        .stat-row {
+            display: grid; grid-template-columns: 1fr 1fr; gap: 8px;
             margin: 8px 0;
         }
-        select option { background: #1C1B1F; }
-        .action-buttons { display: flex; gap: 8px; margin: 12px 0; flex-wrap: wrap; }
-        .action-buttons .btn { flex: 1; min-width: 120px; }
-        .game-list, .app-list { display: grid; gap: 8px; margin-top: 12px; }
-        .game-item, .app-item {
+        .stat-chip {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 14px 12px;
+            text-align: center;
+        }
+        .stat-chip-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+        .stat-chip-value { font-size: 15px; font-weight: 600; color: var(--text-primary); word-break: break-all; }
+
+        /* Cards */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px;
+            margin: 10px 0;
+        }
+        .card-header {
+            display: flex; align-items: center; gap: 10px;
+            margin-bottom: 14px; font-size: 15px; font-weight: 600;
+        }
+        .card-icon {
+            width: 32px; height: 32px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px; flex-shrink: 0;
+        }
+        .card-icon.purple { background: var(--accent-soft); }
+        .card-icon.blue { background: rgba(56, 189, 248, 0.15); }
+        .card-icon.green { background: var(--success-soft); }
+        .card-icon.orange { background: var(--warning-soft); }
+        .card-badge {
+            margin-left: auto;
+            padding: 3px 10px; border-radius: 12px;
+            font-size: 11px; font-weight: 600;
+            background: var(--accent-soft); color: var(--accent);
+        }
+
+        /* Info rows */
+        .info-row {
             display: flex; justify-content: space-between; align-items: center;
-            padding: 12px; background: rgba(255,255,255,0.03);
-            border-radius: 12px; border: 1px solid rgba(255,255,255,0.05);
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border);
         }
-        .game-name { font-size: 13px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .app-info { flex: 1; overflow: hidden; }
-        .app-package { font-size: 13px; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .app-governor { font-size: 11px; color: var(--on-surface-variant); }
-        .log-container {
-            background: rgba(0,0,0,0.3); border-radius: 12px; padding: 16px;
-            height: 400px; overflow-y: auto;
-            font-family: 'Courier New', monospace; font-size: 12px; line-height: 1.6;
+        .info-row:last-child { border-bottom: none; }
+        .info-row-label { font-size: 13px; color: var(--text-secondary); }
+        .info-row-value { font-size: 13px; font-weight: 500; color: var(--text-primary); text-align: right; max-width: 60%; word-break: break-word; }
+
+        /* Buttons */
+        .btn {
+            padding: 10px 18px; border: none; border-radius: var(--radius-sm);
+            font-size: 13px; font-weight: 600; cursor: pointer;
+            transition: all 0.2s ease;
+            background: var(--bg-card-hover); color: var(--text-primary);
+            border: 1px solid var(--border-light);
         }
-        .log-entry { padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.05); color: var(--on-surface-variant); }
+        .btn:active:not(:disabled) { transform: scale(0.97); }
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn-accent {
+            background: var(--accent); color: #fff; border: none;
+            box-shadow: 0 2px 12px var(--accent-glow);
+        }
+        .btn-accent:active:not(:disabled) { background: #4f46e5; }
+        .btn-sm { padding: 7px 14px; font-size: 12px; }
+        .btn-danger {
+            padding: 5px 12px; font-size: 11px; font-weight: 600;
+            background: var(--danger-soft); color: var(--danger);
+            border: 1px solid rgba(239, 68, 68, 0.2);
+        }
+        .btn-danger:active:not(:disabled) { background: rgba(239, 68, 68, 0.3); }
+        .btn-full { width: 100%; margin-top: 10px; }
+        .btn-row { display: flex; gap: 6px; margin: 10px 0; flex-wrap: wrap; }
+        .btn-row .btn { flex: 1; min-width: 0; }
+
+        /* Form inputs */
+        .input, .select {
+            width: 100%; padding: 11px 14px; border-radius: var(--radius-sm);
+            background: var(--bg-input); color: var(--text-primary);
+            border: 1px solid var(--border-light);
+            font-size: 14px; outline: none;
+            transition: border-color 0.2s;
+        }
+        .input:focus, .select:focus { border-color: var(--accent); }
+        .select option { background: var(--bg-secondary); }
+        .form-label {
+            display: block; font-size: 12px; font-weight: 500;
+            color: var(--text-secondary); margin-bottom: 6px; text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+        .form-group { margin-bottom: 12px; }
+        .form-row { display: flex; gap: 8px; align-items: flex-end; }
+        .form-row .form-group { flex: 1; margin-bottom: 0; }
+        .form-row .btn { flex-shrink: 0; align-self: flex-end; }
+
+        /* Info notice */
+        .notice {
+            display: flex; gap: 8px; align-items: flex-start;
+            padding: 10px 12px; border-radius: var(--radius-sm);
+            font-size: 12px; line-height: 1.5; color: var(--text-secondary);
+            background: var(--accent-soft);
+            margin: 10px 0;
+        }
+        .notice-icon { flex-shrink: 0; font-size: 14px; margin-top: 1px; }
+
+        /* List items */
+        .list-empty {
+            text-align: center; padding: 28px 16px;
+            color: var(--text-muted); font-size: 13px;
+        }
+        .list-group { margin-top: 10px; }
+        .list-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 10px 12px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            margin-bottom: 6px;
+            transition: background 0.15s;
+        }
+        .list-item-text { font-size: 13px; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-right: 8px; }
+        .list-item-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+        .list-item-info { flex: 1; overflow: hidden; }
+
+        /* Log viewer */
+        .log-viewer {
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 12px;
+            height: 420px; overflow-y: auto;
+            font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+            font-size: 11px; line-height: 1.7;
+        }
+        .log-line {
+            padding: 2px 0;
+            color: var(--text-secondary);
+            border-bottom: 1px solid rgba(255,255,255,0.02);
+            word-break: break-all;
+        }
+
+        /* Bottom nav */
         .bottom-nav {
-            position: fixed;
-            bottom: 0; left: 0; right: 0;
+            position: fixed; bottom: 0; left: 0; right: 0;
             display: flex; justify-content: space-around;
-            background: rgba(28,27,31,0.97);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-top: 1px solid rgba(255,255,255,0.1);
-            padding: 10px 0 16px;
+            background: rgba(10, 14, 26, 0.95);
+            backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+            border-top: 1px solid var(--border);
+            padding: 6px 0 max(10px, env(safe-area-inset-bottom));
             z-index: 1000;
         }
-        .nav-item {
-            display: flex; flex-direction: column; align-items: center; gap: 4px;
-            cursor: pointer; padding: 8px 20px; border-radius: 16px;
-            transition: background 0.3s, color 0.3s;
-            color: var(--on-surface-variant);
-            -webkit-tap-highlight-color: transparent;
+        .nav-btn {
+            display: flex; flex-direction: column; align-items: center; gap: 3px;
+            cursor: pointer; padding: 6px 24px; border-radius: 12px;
+            color: var(--text-muted);
+            transition: color 0.2s, background 0.2s;
             user-select: none;
         }
-        .nav-item.active { background: rgba(103,80,164,0.2); color: var(--primary); }
-        .nav-icon { font-size: 22px; }
-        .nav-label { font-size: 11px; font-weight: 500; }
-        .info-box {
-            background: rgba(103,80,164,0.1); border: 1px solid rgba(103,80,164,0.3);
-            border-radius: 12px; padding: 12px; margin: 12px 0;
-            font-size: 12px; color: var(--on-surface-variant); line-height: 1.5;
-        }
-        .empty-state { text-align: center; padding: 40px 20px; color: var(--on-surface-variant); }
+        .nav-btn.active { color: var(--accent); background: var(--accent-soft); }
+        .nav-btn-icon { font-size: 20px; line-height: 1; }
+        .nav-btn-label { font-size: 10px; font-weight: 600; letter-spacing: 0.3px; text-transform: uppercase; }
+
+        /* Toast */
         #toast {
-            position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
-            background: rgba(28,28,40,0.97); color: #fff;
-            padding: 10px 22px; border-radius: 22px; font-size: 13px;
-            z-index: 9999; box-shadow: 0 4px 20px rgba(0,0,0,0.5);
-            opacity: 0; transition: opacity 0.3s; pointer-events: none;
-            white-space: nowrap; max-width: 90vw; overflow: hidden; text-overflow: ellipsis;
+            position: fixed; bottom: 76px; left: 50%; transform: translateX(-50%);
+            background: var(--bg-card); color: var(--text-primary);
+            padding: 10px 20px; border-radius: 24px;
+            font-size: 13px; font-weight: 500;
+            z-index: 9999; box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+            border: 1px solid var(--border-light);
+            opacity: 0; transition: opacity 0.25s; pointer-events: none;
+            white-space: nowrap; max-width: 88vw; overflow: hidden; text-overflow: ellipsis;
         }
         #toast.show { opacity: 1; }
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-thumb { background: rgba(103,80,164,0.5); border-radius: 4px; }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(99, 102, 241, 0.3); border-radius: 4px; }
     </style>
 </head>
 <body>
 
 <div class="header">
-    <h1>&#9889; Adaptive Performance</h1>
-    <div class="subtitle">v1.3 &#8226; by Steambot12</div>
+    <div class="header-title">Adaptive Performance</div>
+    <div class="header-sub">v1.3 &#183; by Steambot12</div>
 </div>
 
 <div id="toast"></div>
 
-<!-- Tab Main -->
+<!-- TAB: MAIN -->
 <div id="tab-main" class="tab-content active">
-    <div class="status-grid">
-        <div class="status-item"><div class="status-label">Mode</div><div class="status-value idle" id="mode">IDLE</div></div>
-        <div class="status-item"><div class="status-label">CPU Governor</div><div class="status-value" id="governor">--</div></div>
-        <div class="status-item"><div class="status-label">Foreground App</div><div class="status-value" id="foreground-app" style="font-size:11px">--</div></div>
-        <div class="status-item"><div class="status-label">Temperature</div><div class="status-value" id="temperature">--</div></div>
+<div class="page">
+    <div class="mode-hero idle" id="mode-hero">
+        <div class="mode-indicator" id="mode-badge"><span class="dot"></span><span id="mode-text">IDLE</span></div>
+        <div class="mode-governor" id="governor">--</div>
+        <div class="mode-label">Active Governor</div>
     </div>
-    <div class="glass-card">
-        <div class="section-header"><span>&#9881;</span> Device Info</div>
-        <div class="info-grid">
-            <div class="info-item"><span class="info-label">Device</span><span class="info-value" id="device">--</span></div>
-            <div class="info-item"><span class="info-label">Kernel</span><span class="info-value" id="kernel" style="font-size:11px">--</span></div>
-            <div class="info-item"><span class="info-label">CPU Cores</span><span class="info-value" id="cpu-cores">--</span></div>
-            <div class="info-item"><span class="info-label">Chipset</span><span class="info-value" id="chipset">--</span></div>
+
+    <div class="stat-row">
+        <div class="stat-chip">
+            <div class="stat-chip-label">Foreground</div>
+            <div class="stat-chip-value" id="foreground-app" title="">--</div>
+        </div>
+        <div class="stat-chip">
+            <div class="stat-chip-label">Temperature</div>
+            <div class="stat-chip-value" id="temperature">--</div>
         </div>
     </div>
+
+    <div class="card">
+        <div class="card-header">
+            <div class="card-icon blue">&#9881;</div>
+            Device Info
+        </div>
+        <div class="info-row"><span class="info-row-label">Device</span><span class="info-row-value" id="device">--</span></div>
+        <div class="info-row"><span class="info-row-label">Chipset</span><span class="info-row-value" id="chipset">--</span></div>
+        <div class="info-row"><span class="info-row-label">CPU Cores</span><span class="info-row-value" id="cpu-cores">--</span></div>
+        <div class="info-row"><span class="info-row-label">Kernel</span><span class="info-row-value" id="kernel" style="font-size:11px">--</span></div>
+    </div>
+</div>
 </div>
 
-<!-- Tab Tuning -->
+<!-- TAB: TUNING -->
 <div id="tab-tuning" class="tab-content">
-    <div class="glass-card">
-        <div class="section-header"><span>&#9881;</span> CPU Governor</div>
-        <div style="margin-bottom:16px">
-            <label class="info-label" style="display:block;margin-bottom:4px">Idle Governor</label>
-            <div style="display:flex;gap:8px;align-items:center">
-                <select id="idle-governor-select" style="flex:1"><option value="">-- Select Idle Governor --</option></select>
-                <button class="btn btn-primary btn-small" id="btn-set-idle">&#10004; Apply</button>
+<div class="page">
+    <div class="card">
+        <div class="card-header">
+            <div class="card-icon purple">&#9881;</div>
+            Governor Config
+        </div>
+        <div class="form-group">
+            <label class="form-label">Idle Governor</label>
+            <div class="form-row">
+                <div class="form-group"><select class="select" id="idle-governor-select"><option value="">-- Select --</option></select></div>
+                <button class="btn btn-accent btn-sm" id="btn-set-idle">Apply</button>
             </div>
         </div>
-        <div>
-            <label class="info-label" style="display:block;margin-bottom:4px">Gaming Governor</label>
-            <div style="display:flex;gap:8px;align-items:center">
-                <select id="governor-select" style="flex:1"><option value="">-- Select Gaming Governor --</option></select>
-                <button class="btn btn-primary btn-small" id="btn-set-gov">&#10004; Apply</button>
+        <div class="form-group">
+            <label class="form-label">Gaming Governor</label>
+            <div class="form-row">
+                <div class="form-group"><select class="select" id="governor-select"><option value="">-- Select --</option></select></div>
+                <button class="btn btn-accent btn-sm" id="btn-set-gov">Apply</button>
             </div>
         </div>
-        <div class="info-box">&#8505; Changes are applied immediately if the relevant mode is active.</div>
+        <div class="notice">
+            <span class="notice-icon">&#8505;</span>
+            <span>Changes apply immediately if the relevant mode is active.</span>
+        </div>
     </div>
 
-    <div class="glass-card">
-        <div class="section-header"><span>&#9670;</span> Game Packages <span class="badge" id="game-count">0</span></div>
-        <div class="action-buttons">
-            <button class="btn btn-small" id="btn-detect">&#8981; Detect App</button>
-            <button class="btn btn-small" id="btn-refresh-games">&#8635; Refresh</button>
+    <div class="card">
+        <div class="card-header">
+            <div class="card-icon green">&#9670;</div>
+            Game Packages
+            <span class="card-badge" id="game-count">0</span>
         </div>
-        <input type="text" id="game-package-input" placeholder="com.example.game" autocomplete="off" autocorrect="off" spellcheck="false">
-        <button class="btn btn-primary" id="btn-add-game" style="width:100%;margin-top:8px">+ Add Game</button>
-        <div id="game-list" class="game-list"><div class="empty-state">Loading...</div></div>
+        <div class="btn-row">
+            <button class="btn btn-sm" id="btn-detect">&#8981; Detect App</button>
+            <button class="btn btn-sm" id="btn-refresh-games">&#8635; Refresh</button>
+        </div>
+        <input class="input" type="text" id="game-package-input" placeholder="com.example.game" autocomplete="off" autocorrect="off" spellcheck="false">
+        <button class="btn btn-accent btn-full" id="btn-add-game">+ Add Game</button>
+        <div id="game-list" class="list-group"><div class="list-empty">Loading...</div></div>
     </div>
 
-    <div class="glass-card">
-        <div class="section-header"><span>&#9672;</span> Per-App Governor <span class="badge" id="app-count">0</span></div>
-        <div class="action-buttons">
-            <button class="btn btn-small" id="btn-detect-app">&#8981; Detect App</button>
-            <button class="btn btn-small" id="btn-refresh-apps">&#8635; Refresh List</button>
+    <div class="card">
+        <div class="card-header">
+            <div class="card-icon orange">&#9672;</div>
+            Per-App Governor
+            <span class="card-badge" id="app-count">0</span>
         </div>
-        <input type="text" id="app-package-input" placeholder="com.example.app" autocomplete="off" autocorrect="off" spellcheck="false">
-        <select id="app-governor-select"><option value="">-- Select Governor --</option></select>
-        <button class="btn btn-primary" id="btn-add-app" style="width:100%;margin-top:8px">&#10004; Add App Governor</button>
-        <div class="info-box">&#8505; Per-App governor cannot overlap with the game list.</div>
-        <div id="app-list" class="app-list"><div class="empty-state">No custom governors configured</div></div>
+        <div class="btn-row">
+            <button class="btn btn-sm" id="btn-detect-app">&#8981; Detect App</button>
+            <button class="btn btn-sm" id="btn-refresh-apps">&#8635; Refresh</button>
+        </div>
+        <input class="input" type="text" id="app-package-input" placeholder="com.example.app" autocomplete="off" autocorrect="off" spellcheck="false">
+        <div class="form-group" style="margin-top:8px">
+            <select class="select" id="app-governor-select"><option value="">-- Select Governor --</option></select>
+        </div>
+        <button class="btn btn-accent btn-full" id="btn-add-app">&#10004; Add App Governor</button>
+        <div class="notice">
+            <span class="notice-icon">&#8505;</span>
+            <span>Per-app governor cannot overlap with the game list.</span>
+        </div>
+        <div id="app-list" class="list-group"><div class="list-empty">No custom governors configured</div></div>
     </div>
 </div>
+</div>
 
-<!-- Tab Log -->
+<!-- TAB: LOG -->
 <div id="tab-log" class="tab-content">
-    <div class="glass-card">
-        <div class="section-header"><span>&#9776;</span> Live Log</div>
-        <div class="action-buttons">
-            <button class="btn btn-small" id="btn-refresh-log">&#8635; Refresh</button>
-            <button class="btn btn-small" id="btn-clear-log">&#215; Clear</button>
+<div class="page">
+    <div class="card">
+        <div class="card-header">
+            <div class="card-icon purple">&#9776;</div>
+            Live Log
         </div>
-        <div class="log-container" id="log-container"><div class="log-entry">Initializing...</div></div>
+        <div class="btn-row">
+            <button class="btn btn-sm" id="btn-refresh-log">&#8635; Refresh</button>
+            <button class="btn btn-sm" id="btn-clear-log">&#215; Clear</button>
+        </div>
+        <div class="log-viewer" id="log-container"><div class="log-line">Initializing...</div></div>
     </div>
+</div>
 </div>
 
 <div class="bottom-nav" id="bottom-nav">
-    <div class="nav-item active" data-tab="main"><div class="nav-icon">&#8962;</div><div class="nav-label">Main</div></div>
-    <div class="nav-item" data-tab="tuning"><div class="nav-icon">&#9881;</div><div class="nav-label">Tuning</div></div>
-    <div class="nav-item" data-tab="log"><div class="nav-icon">&#9776;</div><div class="nav-label">Log</div></div>
+    <div class="nav-btn active" data-tab="main"><div class="nav-btn-icon">&#8962;</div><div class="nav-btn-label">Main</div></div>
+    <div class="nav-btn" data-tab="tuning"><div class="nav-btn-icon">&#9881;</div><div class="nav-btn-label">Tuning</div></div>
+    <div class="nav-btn" data-tab="log"><div class="nav-btn-icon">&#9776;</div><div class="nav-btn-label">Log</div></div>
 </div>
 
 <script>
@@ -255,20 +451,18 @@ var idleSelectDirty = false;
 var appSelectDirty = false;
 var govListLoaded = false;
 
-// Cache of current lists for client-side validation
 var cachedGameList = [];
 var cachedAppList = [];
 
 // =====================================================================
-// Lock bottom-nav to bottom of SCREEN using visualViewport
+// VISUAL VIEWPORT NAV LOCK (keyboard push fix)
 // =====================================================================
 (function lockNavToScreen() {
     var nav = document.getElementById('bottom-nav');
-    var NAV_FALLBACK_HEIGHT = 68;
     function reposition() {
         var vv = window.visualViewport;
         if (!vv) return;
-        var navH = nav.offsetHeight || NAV_FALLBACK_HEIGHT;
+        var navH = nav.offsetHeight || 64;
         nav.style.top    = (vv.offsetTop + vv.height - navH) + 'px';
         nav.style.bottom = 'auto';
         nav.style.left   = vv.offsetLeft + 'px';
@@ -299,7 +493,7 @@ function showToast(msg, ms) {
 // =====================================================================
 // fetchJSON
 // =====================================================================
-function fetchJSON(filename, forceRefresh) {
+function fetchJSON(filename) {
     return new Promise(function(resolve) {
         var xhr = new XMLHttpRequest();
         xhr.open('GET', '/' + filename + '?_=' + Date.now() + '&r=' + Math.random(), true);
@@ -321,7 +515,7 @@ function fetchJSON(filename, forceRefresh) {
 }
 
 // =====================================================================
-// apiCall - no-cors fetch to port 9877 (response is opaque)
+// apiCall - no-cors fetch (response is opaque)
 // =====================================================================
 function apiCall(action, params, retries) {
     params = params || {};
@@ -349,11 +543,11 @@ function apiCall(action, params, retries) {
 // TABS
 // =====================================================================
 function initTabs() {
-    document.querySelectorAll('.nav-item').forEach(function(item) {
+    document.querySelectorAll('.nav-btn').forEach(function(item) {
         item.addEventListener('click', function() {
             var tab = this.getAttribute('data-tab');
             document.querySelectorAll('.tab-content').forEach(function(t) { t.classList.remove('active'); });
-            document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
+            document.querySelectorAll('.nav-btn').forEach(function(n) { n.classList.remove('active'); });
             document.getElementById('tab-' + tab).classList.add('active');
             this.classList.add('active');
             if (tab === 'log') refreshLog();
@@ -372,7 +566,7 @@ function initTabs() {
 var deviceInfoLoaded = false;
 function updateDeviceInfo() {
     if (deviceInfoLoaded) return;
-    fetchJSON('static.json', true).then(function(data) {
+    fetchJSON('static.json').then(function(data) {
         if (!data) { setTimeout(updateDeviceInfo, 3000); return; }
         var device = data.device || '';
         var kernel = data.kernel || '';
@@ -391,20 +585,22 @@ function updateDeviceInfo() {
 // STATUS (main tab realtime)
 // =====================================================================
 function updateStatus() {
-    fetchJSON('dynamic.json', true).then(function(data) {
+    fetchJSON('dynamic.json').then(function(data) {
         if (!data) return;
         var state = data.state || 'idle';
-        var modeEl = document.getElementById('mode');
-        modeEl.textContent = state.toUpperCase().replace('_', ' ');
-        modeEl.className = 'status-value ' + state;
+        var hero = document.getElementById('mode-hero');
+        hero.className = 'mode-hero ' + state;
+        document.getElementById('mode-text').textContent = state.toUpperCase().replace('_', ' ');
         document.getElementById('governor').textContent = data.governor || '--';
+
         var fg = data.foreground || '';
         var fgEl = document.getElementById('foreground-app');
         if (fg && fg !== 'unknown' && fg.trim().length > 0) {
-            fgEl.textContent = fg.length > 25 ? fg.substring(0, 22) + '...' : fg;
+            fgEl.textContent = fg.length > 28 ? fg.substring(0, 25) + '...' : fg;
             fgEl.title = fg;
         } else {
             fgEl.textContent = 'None';
+            fgEl.title = '';
         }
         var temp = parseInt(data.temperature) || 0;
         document.getElementById('temperature').textContent =
@@ -414,12 +610,11 @@ function updateStatus() {
 }
 
 // =====================================================================
-// Governor config - populate 3 selects (idle, gaming, app-governor)
+// Governor config - populate 3 selects
 // =====================================================================
 function loadGovernorConfig(forceRefresh) {
-    fetchJSON('config.json', forceRefresh).then(function(data) {
+    fetchJSON('config.json').then(function(data) {
         if (!data) return;
-
         var idleSel = document.getElementById('idle-governor-select');
         var gamingSel = document.getElementById('governor-select');
         var appSel  = document.getElementById('app-governor-select');
@@ -429,8 +624,8 @@ function loadGovernorConfig(forceRefresh) {
             var savedGaming = gamingSel.value;
             var savedApp = appSel.value;
 
-            idleSel.innerHTML = '<option value="">-- Select Idle Governor --</option>';
-            gamingSel.innerHTML = '<option value="">-- Select Gaming Governor --</option>';
+            idleSel.innerHTML = '<option value="">-- Select --</option>';
+            gamingSel.innerHTML = '<option value="">-- Select --</option>';
             appSel.innerHTML  = '<option value="">-- Select Governor --</option>';
 
             data.available_governors.forEach(function(g) {
@@ -460,35 +655,33 @@ function initGovernorBtn() {
     markDirty(gamingSel, 'govSelectDirty');
     markDirty(idleSel, 'idleSelectDirty');
 
-    // Gaming governor apply
     document.getElementById('btn-set-gov').addEventListener('click', function() {
         var gov = gamingSel.value;
-        if (!gov) { showToast('❌ Select a gaming governor'); return; }
+        if (!gov) { showToast('Select a gaming governor'); return; }
         var btn = this;
-        btn.disabled = true; btn.textContent = '⏳...';
+        btn.disabled = true; btn.textContent = '...';
         apiCall('set_governor', { governor: gov }, 2).then(function() {
             setTimeout(function() {
                 govListLoaded = false; govSelectDirty = false;
                 loadGovernorConfig(true);
-                btn.disabled = false; btn.textContent = '✔ Apply';
-                showToast('✅ Gaming governor: ' + gov);
+                btn.disabled = false; btn.textContent = 'Apply';
+                showToast('Gaming governor: ' + gov);
                 refreshLog();
             }, 800);
         });
     });
 
-    // Idle governor apply
     document.getElementById('btn-set-idle').addEventListener('click', function() {
         var gov = idleSel.value;
-        if (!gov) { showToast('❌ Select an idle governor'); return; }
+        if (!gov) { showToast('Select an idle governor'); return; }
         var btn = this;
-        btn.disabled = true; btn.textContent = '⏳...';
+        btn.disabled = true; btn.textContent = '...';
         apiCall('set_idle_governor', { governor: gov }, 2).then(function() {
             setTimeout(function() {
                 govListLoaded = false; idleSelectDirty = false;
                 loadGovernorConfig(true);
-                btn.disabled = false; btn.textContent = '✔ Apply';
-                showToast('✅ Idle governor: ' + gov);
+                btn.disabled = false; btn.textContent = 'Apply';
+                showToast('Idle governor: ' + gov);
                 refreshLog();
             }, 800);
         });
@@ -503,29 +696,29 @@ function initAppSelect() {
 // GAME LIST
 // =====================================================================
 function refreshGameList() {
-    fetchJSON('games.json', true).then(function(data) {
+    fetchJSON('games.json').then(function(data) {
         var list = document.getElementById('game-list');
-        if (!data) { list.innerHTML = '<div class="empty-state">&#9888; Failed to load</div>'; return; }
+        if (!data) { list.innerHTML = '<div class="list-empty">Failed to load</div>'; return; }
         cachedGameList = data.games || [];
         document.getElementById('game-count').textContent = data.count || 0;
         if (cachedGameList.length > 0) {
             list.innerHTML = '';
             cachedGameList.forEach(function(pkg) {
                 var item = document.createElement('div');
-                item.className = 'game-item';
+                item.className = 'list-item';
                 var name = document.createElement('span');
-                name.className = 'game-name';
+                name.className = 'list-item-text';
                 name.textContent = pkg;
                 var btn = document.createElement('button');
-                btn.className = 'btn btn-small btn-remove';
-                btn.textContent = '× Remove';
+                btn.className = 'btn btn-danger';
+                btn.textContent = 'Remove';
                 (function(p, b) { b.onclick = function() { removeGame(p, b); }; })(pkg, btn);
                 item.appendChild(name);
                 item.appendChild(btn);
                 list.appendChild(item);
             });
         } else {
-            list.innerHTML = '<div class="empty-state">No game packages configured</div>';
+            list.innerHTML = '<div class="list-empty">No game packages configured</div>';
         }
     });
 }
@@ -533,38 +726,34 @@ function refreshGameList() {
 function addGame() {
     var input = document.getElementById('game-package-input');
     var pkg = input.value.trim();
-    if (!pkg) { showToast('❌ Enter a package name'); return; }
+    if (!pkg) { showToast('Enter a package name'); return; }
     if (!/^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)+$/.test(pkg)) {
-        showToast('❌ Invalid format. Example: com.example.game'); return;
+        showToast('Invalid format. Example: com.example.game'); return;
     }
-    // Client-side duplicate check
     if (cachedGameList.indexOf(pkg) !== -1) {
-        showToast('❌ Already in game list: ' + pkg); return;
+        showToast('Already in game list: ' + pkg); return;
     }
-    // Client-side per-app conflict check
     for (var i = 0; i < cachedAppList.length; i++) {
         if (cachedAppList[i].package === pkg) {
-            showToast('❌ Already in per-app list: ' + pkg); return;
+            showToast('Already in per-app list: ' + pkg); return;
         }
     }
     var btn = document.getElementById('btn-add-game');
-    btn.disabled = true; btn.textContent = '⏳ Adding...';
+    btn.disabled = true; btn.textContent = 'Adding...';
     apiCall('add', { pkg: pkg }, 2).then(function() {
         setTimeout(function() {
-            // Verify via JSON refresh
-            fetchJSON('games.json', true).then(function(data) {
+            fetchJSON('games.json').then(function(data) {
                 btn.disabled = false; btn.textContent = '+ Add Game';
                 if (data && data.games && data.games.indexOf(pkg) !== -1) {
                     input.value = '';
                     cachedGameList = data.games;
                     document.getElementById('game-count').textContent = data.count || 0;
                     refreshGameList();
-                    showToast('✅ Added: ' + pkg);
+                    showToast('Added: ' + pkg);
                     refreshLog();
                 } else {
-                    showToast('❌ Failed to add: ' + pkg);
-                    refreshGameList();
-                    refreshLog();
+                    showToast('Failed to add: ' + pkg);
+                    refreshGameList(); refreshLog();
                 }
             });
         }, 800);
@@ -575,7 +764,7 @@ function removeGame(pkg, btn) {
     if (!confirm('Remove "' + pkg + '" from game list?')) return;
     if (btn) { btn.disabled = true; btn.textContent = '...'; }
     apiCall('remove', { pkg: pkg }, 2).then(function() {
-        showToast('✅ Removed: ' + pkg);
+        showToast('Removed: ' + pkg);
         setTimeout(function() { refreshGameList(); refreshLog(); }, 500);
     });
 }
@@ -583,10 +772,10 @@ function removeGame(pkg, btn) {
 function detectForeground(inputId) {
     fetchJSON('dynamic.json').then(function(data) {
         if (!data || !data.foreground || data.foreground === 'unknown') {
-            showToast('❌ No foreground app detected'); return;
+            showToast('No foreground app detected'); return;
         }
         document.getElementById(inputId).value = data.foreground;
-        showToast('✓ Detected: ' + data.foreground);
+        showToast('Detected: ' + data.foreground);
     });
 }
 
@@ -594,36 +783,36 @@ function detectForeground(inputId) {
 // PER-APP GOVERNOR
 // =====================================================================
 function refreshAppList() {
-    fetchJSON('app_governors.json', true).then(function(data) {
+    fetchJSON('app_governors.json').then(function(data) {
         var list = document.getElementById('app-list');
-        if (!data) { list.innerHTML = '<div class="empty-state">&#9888; Failed to load</div>'; return; }
+        if (!data) { list.innerHTML = '<div class="list-empty">Failed to load</div>'; return; }
         cachedAppList = data.app_governors || [];
         document.getElementById('app-count').textContent = data.count || 0;
         if (cachedAppList.length > 0) {
             list.innerHTML = '';
             cachedAppList.forEach(function(app) {
                 var item = document.createElement('div');
-                item.className = 'app-item';
+                item.className = 'list-item';
                 var info = document.createElement('div');
-                info.className = 'app-info';
+                info.className = 'list-item-info';
                 var pkgDiv = document.createElement('div');
-                pkgDiv.className = 'app-package';
+                pkgDiv.className = 'list-item-text';
                 pkgDiv.textContent = app.package;
                 var govDiv = document.createElement('div');
-                govDiv.className = 'app-governor';
-                govDiv.textContent = 'Governor: ' + app.governor;
+                govDiv.className = 'list-item-sub';
+                govDiv.textContent = app.governor;
                 info.appendChild(pkgDiv);
                 info.appendChild(govDiv);
                 var btn = document.createElement('button');
-                btn.className = 'btn btn-small btn-remove';
-                btn.textContent = '×';
+                btn.className = 'btn btn-danger';
+                btn.textContent = 'Remove';
                 (function(p, b) { b.onclick = function() { removeAppGovernor(p, b); }; })(app.package, btn);
                 item.appendChild(info);
                 item.appendChild(btn);
                 list.appendChild(item);
             });
         } else {
-            list.innerHTML = '<div class="empty-state">No custom app governors configured</div>';
+            list.innerHTML = '<div class="list-empty">No custom governors configured</div>';
         }
     });
 }
@@ -631,20 +820,18 @@ function refreshAppList() {
 function addAppGovernor() {
     var pkg = document.getElementById('app-package-input').value.trim();
     var gov = document.getElementById('app-governor-select').value;
-    if (!pkg || !gov) { showToast('❌ Enter package and select a governor'); return; }
+    if (!pkg || !gov) { showToast('Enter package and select a governor'); return; }
     if (!/^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)+$/.test(pkg)) {
-        showToast('❌ Invalid package format'); return;
+        showToast('Invalid package format'); return;
     }
-    // Client-side game list conflict check
     if (cachedGameList.indexOf(pkg) !== -1) {
-        showToast('❌ Already in game list: ' + pkg); return;
+        showToast('Already in game list: ' + pkg); return;
     }
     var btn = document.getElementById('btn-add-app');
-    btn.disabled = true; btn.textContent = '⏳ Adding...';
+    btn.disabled = true; btn.textContent = 'Adding...';
     apiCall('set_app_governor', { pkg: pkg, governor: gov }, 2).then(function() {
         setTimeout(function() {
-            // Verify via JSON refresh
-            fetchJSON('app_governors.json', true).then(function(data) {
+            fetchJSON('app_governors.json').then(function(data) {
                 btn.disabled = false; btn.textContent = '✔ Add App Governor';
                 if (data && data.app_governors) {
                     var found = false;
@@ -657,12 +844,11 @@ function addAppGovernor() {
                         document.getElementById('app-governor-select').value = '';
                         cachedAppList = data.app_governors;
                         refreshAppList();
-                        showToast('✅ ' + pkg + ' → ' + gov);
+                        showToast(pkg + ' → ' + gov);
                         refreshLog();
                     } else {
-                        showToast('❌ Failed to add: ' + pkg);
-                        refreshAppList();
-                        refreshLog();
+                        showToast('Failed to add: ' + pkg);
+                        refreshAppList(); refreshLog();
                     }
                 }
             });
@@ -674,7 +860,7 @@ function removeAppGovernor(pkg, btn) {
     if (!confirm('Remove custom governor for "' + pkg + '"?')) return;
     if (btn) { btn.disabled = true; btn.textContent = '...'; }
     apiCall('remove_app_governor', { pkg: pkg }, 2).then(function() {
-        showToast('✅ Removed: ' + pkg);
+        showToast('Removed: ' + pkg);
         setTimeout(function() { refreshAppList(); refreshLog(); }, 500);
     });
 }
@@ -692,11 +878,11 @@ function refreshLog() {
         var lines = xhr.responseText.split('\n').filter(function(l) { return l.trim(); });
         if (lines.length > 0) {
             container.innerHTML = lines.slice(-100).map(function(e) {
-                return '<div class="log-entry">' + escapeHtml(e) + '</div>';
+                return '<div class="log-line">' + escapeHtml(e) + '</div>';
             }).join('');
             container.scrollTop = container.scrollHeight;
         } else {
-            container.innerHTML = '<div class="log-entry">No log entries</div>';
+            container.innerHTML = '<div class="log-line">No log entries</div>';
         }
     };
     xhr.onerror = function() {};
@@ -715,7 +901,7 @@ function initEventListeners() {
     document.getElementById('btn-refresh-apps').addEventListener('click', refreshAppList);
     document.getElementById('btn-refresh-log').addEventListener('click', refreshLog);
     document.getElementById('btn-clear-log').addEventListener('click', function() {
-        document.getElementById('log-container').innerHTML = '<div class="log-entry">Cleared</div>';
+        document.getElementById('log-container').innerHTML = '<div class="log-line">Cleared</div>';
     });
     document.getElementById('game-package-input').addEventListener('keypress', function(e) {
         if (e.key === 'Enter') { document.activeElement.blur(); addGame(); }
@@ -738,10 +924,8 @@ function initialize() {
     refreshAppList();
     refreshLog();
 
-    // Status polling every 2s (mode, governor, foreground, temp)
     setInterval(updateStatus, 2000);
 
-    // Auto-refresh tuning tab data every 3s
     setInterval(function() {
         if (document.getElementById('tab-tuning').classList.contains('active')) {
             refreshGameList();
@@ -750,12 +934,10 @@ function initialize() {
         }
     }, 3000);
 
-    // Device info retry every 5s until loaded
     setInterval(function() {
         if (!deviceInfoLoaded) updateDeviceInfo();
     }, 5000);
 
-    // Log auto-refresh every 3s when log tab active
     setInterval(function() {
         if (document.getElementById('tab-log').classList.contains('active')) refreshLog();
     }, 3000);
