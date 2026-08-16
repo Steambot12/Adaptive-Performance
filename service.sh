@@ -328,7 +328,8 @@ generate_app_governors_json() {
   fi
   local ts=$(date +%s)000
   printf '{"status":"success","app_governors":[%s],"count":%d,"timestamp":%s}\n' \
-    "$arr" "$cnt" "$ts" > "$JSON_APP_GOVS"
+    "$arr" "$cnt" "$ts" > "${JSON_APP_GOVS}.tmp"
+  mv -f "${JSON_APP_GOVS}.tmp" "$JSON_APP_GOVS"
   chmod 666 "$JSON_APP_GOVS" 2>/dev/null
 }
 
@@ -424,7 +425,8 @@ generate_static_json() {
   local device=$(getprop ro.product.model 2>/dev/null || echo "Unknown")
   local kernel=$(uname -r 2>/dev/null || echo "Unknown")
   printf '{"cores":%d,"kernel":"%s","device":"%s","default_governor":"%s","chipset":"%s"}' \
-    "$NUM_CORES" "$kernel" "$device" "$DEFAULT_GOVERNOR" "$CHIPSET_DISPLAY" > "$JSON_STATIC"
+    "$NUM_CORES" "$kernel" "$device" "$DEFAULT_GOVERNOR" "$CHIPSET_DISPLAY" > "${JSON_STATIC}.tmp"
+  mv -f "${JSON_STATIC}.tmp" "$JSON_STATIC"
   chmod 666 "$JSON_STATIC" 2>/dev/null
   log "static.json OK: device=$device cores=$NUM_CORES"
 }
@@ -440,7 +442,8 @@ generate_config_json() {
     cnt=$((cnt + 1))
   done
   printf '{"chipset":"%s","default_idle":"%s","gaming_governor":"%s","available_governors":[%s],"all_governors":"%s"}' \
-    "$CHIPSET" "$DEFAULT_GOVERNOR" "$gaming_gov" "$gov_opts" "$AVAILABLE_GOVERNORS" > "$JSON_CONFIG"
+    "$CHIPSET" "$DEFAULT_GOVERNOR" "$gaming_gov" "$gov_opts" "$AVAILABLE_GOVERNORS" > "${JSON_CONFIG}.tmp"
+  mv -f "${JSON_CONFIG}.tmp" "$JSON_CONFIG"
   chmod 666 "$JSON_CONFIG" 2>/dev/null
   log "config.json OK: idle=$DEFAULT_GOVERNOR gaming=$gaming_gov"
 }
@@ -460,7 +463,8 @@ generate_games_json() {
   fi
   local ts=$(date +%s)000
   printf '{"status":"success","games":[%s],"count":%d,"timestamp":%s}' \
-    "$arr" "$cnt" "$ts" > "$JSON_GAMES"
+    "$arr" "$cnt" "$ts" > "${JSON_GAMES}.tmp"
+  mv -f "${JSON_GAMES}.tmp" "$JSON_GAMES"
   chmod 666 "$JSON_GAMES" 2>/dev/null
 }
 
@@ -495,7 +499,8 @@ generate_dynamic_json() {
     [ $cpu -eq 0 ] && freqs="$freq" || freqs="$freqs,$freq"
   done
   printf '{"governor":"%s","foreground":"%s","temperature":%d,"frequencies":[%s],"state":"%s","timestamp":%d}' \
-    "$governor" "$foreground" "$temp" "$freqs" "$state" "$(date +%s)" > "$JSON_DYNAMIC"
+    "$governor" "$foreground" "$temp" "$freqs" "$state" "$(date +%s)" > "${JSON_DYNAMIC}.tmp"
+  mv -f "${JSON_DYNAMIC}.tmp" "$JSON_DYNAMIC"
   chmod 666 "$JSON_DYNAMIC" 2>/dev/null
 }
 
@@ -564,7 +569,8 @@ start_http_server() {
   # Kill any stale instances
   for pid in $(pgrep -f "httpd.*$HTTP_PORT" 2>/dev/null); do kill "$pid" 2>/dev/null; done
   sleep 1
-  ln -sf "$LOG" "$WEBROOT/log.txt" 2>/dev/null
+  # Copy log tail instead of symlink (BusyBox httpd may cache symlink stat)
+  tail -200 "$LOG" > "$WEBROOT/log.txt" 2>/dev/null
   chmod 666 "$WEBROOT/log.txt" 2>/dev/null
   if command -v httpd >/dev/null 2>&1; then
     httpd -p 127.0.0.1:$HTTP_PORT -h "$WEBROOT" 2>/dev/null &
@@ -749,6 +755,16 @@ monitor_loop() {
     fi
 
     generate_dynamic_json "$foreground" "$current_state"
+
+    # Refresh log.txt for httpd (real copy, not symlink)
+    tail -200 "$LOG" > "$WEBROOT/log.txt" 2>/dev/null
+
+    # Re-read idle governor from file (API server runs in subshell, can't share vars)
+    local idle_file_gov=$(cat "$DEFAULT_GOV_FILE" 2>/dev/null | head -1 | tr -d ' \r\n\t')
+    if [ -n "$idle_file_gov" ] && echo "$AVAILABLE_GOVERNORS" | grep -q "$idle_file_gov"; then
+      DEFAULT_GOVERNOR="$idle_file_gov"
+    fi
+
     sleep 1
   done
 }

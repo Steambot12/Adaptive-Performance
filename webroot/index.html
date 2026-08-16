@@ -299,16 +299,13 @@ function showToast(msg, ms) {
 // fetchJSON
 // =====================================================================
 function fetchJSON(filename, forceRefresh) {
-    var ts = Date.now() + (forceRefresh ? (Math.random() * 1000 | 0) : 0);
     return new Promise(function(resolve) {
         var xhr = new XMLHttpRequest();
-        xhr.open('GET', '/' + filename + '?_=' + ts, true);
-        if (forceRefresh) {
-            try {
-                xhr.setRequestHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-                xhr.setRequestHeader('Pragma', 'no-cache');
-            } catch(e) {}
-        }
+        xhr.open('GET', '/' + filename + '?_=' + Date.now() + '&r=' + Math.random(), true);
+        try {
+            xhr.setRequestHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+            xhr.setRequestHeader('Pragma', 'no-cache');
+        } catch(e) {}
         xhr.timeout = 5000;
         xhr.onload = function() {
             if (xhr.status >= 200 && xhr.status < 300) {
