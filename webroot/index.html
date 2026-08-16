@@ -297,11 +297,60 @@
             padding: 10px 20px; border-radius: 24px;
             font-size: 13px; font-weight: 500;
             z-index: 9999; box-shadow: 0 8px 32px rgba(0,0,0,0.6);
-            border: 1px solid var(--border-light);
-            opacity: 0; transition: opacity 0.25s; pointer-events: none;
+            border: 1.5px solid var(--border-light);
+            opacity: 0; transition: opacity 0.25s, box-shadow 0.25s, border-color 0.25s; pointer-events: none;
             white-space: nowrap; max-width: 88vw; overflow: hidden; text-overflow: ellipsis;
         }
         #toast.show { opacity: 1; }
+        #toast.success {
+            border-color: var(--success);
+            box-shadow: 0 0 0 1px var(--success), 0 0 20px rgba(34, 197, 94, 0.55), 0 8px 32px rgba(0,0,0,0.6);
+        }
+        #toast.error {
+            border-color: var(--danger);
+            box-shadow: 0 0 0 1px var(--danger), 0 0 20px rgba(239, 68, 68, 0.55), 0 8px 32px rgba(0,0,0,0.6);
+        }
+        #toast.warn {
+            border-color: var(--warning);
+            box-shadow: 0 0 0 1px var(--warning), 0 0 20px rgba(245, 158, 11, 0.55), 0 8px 32px rgba(0,0,0,0.6);
+        }
+
+        /* App picker bottom-sheet */
+        .picker-overlay {
+            position: fixed; inset: 0; z-index: 5000;
+            background: rgba(0, 0, 0, 0.65);
+            backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px);
+            display: none; align-items: flex-end;
+        }
+        .picker-overlay.show { display: flex; }
+        .picker-sheet {
+            width: 100%; max-height: 72vh;
+            background: var(--bg-secondary);
+            border-radius: 20px 20px 0 0;
+            border-top: 1px solid var(--border-light);
+            padding: 16px 16px max(16px, env(safe-area-inset-bottom));
+            display: flex; flex-direction: column;
+            animation: sheetUp 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes sheetUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        .picker-head { display: flex; align-items: center; gap: 10px; margin-bottom: 2px; }
+        .picker-title { font-size: 16px; font-weight: 600; flex: 1; }
+        .picker-sub { font-size: 12px; color: var(--text-muted); margin-bottom: 14px; }
+        .picker-list { overflow-y: auto; flex: 1; -webkit-overflow-scrolling: touch; }
+        .picker-item {
+            padding: 13px 14px; border-radius: var(--radius-sm);
+            background: var(--bg-input); border: 1px solid var(--border);
+            margin-bottom: 7px; font-size: 13px; cursor: pointer;
+            word-break: break-all; transition: background 0.15s, border-color 0.15s;
+        }
+        .picker-item:active { background: var(--bg-card-hover); border-color: var(--accent); }
+        .picker-btn {
+            width: 34px; height: 34px; flex-shrink: 0;
+            border-radius: 50%; border: 1px solid var(--border-light);
+            background: var(--bg-input); color: var(--text-secondary);
+            font-size: 18px; line-height: 1; cursor: pointer;
+        }
+        .picker-btn:active { background: var(--bg-card-hover); }
 
         /* Scrollbar */
         ::-webkit-scrollbar { width: 4px; }
@@ -317,6 +366,19 @@
 </div>
 
 <div id="toast"></div>
+
+<!-- App picker bottom-sheet -->
+<div class="picker-overlay" id="app-picker">
+    <div class="picker-sheet">
+        <div class="picker-head">
+            <div class="picker-title">Running Apps</div>
+            <button class="picker-btn" id="picker-rescan" title="Rescan">&#8635;</button>
+            <button class="picker-btn" id="picker-close" title="Close">&#215;</button>
+        </div>
+        <div class="picker-sub">Installed apps running in the background. Tap one to select.</div>
+        <div class="picker-list" id="picker-list"><div class="list-empty">Scanning...</div></div>
+    </div>
+</div>
 
 <!-- TAB: MAIN -->
 <div id="tab-main" class="tab-content active">
@@ -481,13 +543,13 @@ function escapeHtml(t) {
     return d.innerHTML;
 }
 
-function showToast(msg, ms) {
+function showToast(msg, type, ms) {
     ms = ms || 2500;
     var el = document.getElementById('toast');
     el.textContent = msg;
-    el.classList.add('show');
+    el.className = 'show' + (type ? ' ' + type : '');
     clearTimeout(toastTimer);
-    toastTimer = setTimeout(function() { el.classList.remove('show'); }, ms);
+    toastTimer = setTimeout(function() { el.className = ''; }, ms);
 }
 
 // =====================================================================
@@ -657,7 +719,7 @@ function initGovernorBtn() {
 
     document.getElementById('btn-set-gov').addEventListener('click', function() {
         var gov = gamingSel.value;
-        if (!gov) { showToast('Select a gaming governor'); return; }
+        if (!gov) { showToast('Select a gaming governor', 'error'); return; }
         var btn = this;
         btn.disabled = true; btn.textContent = '...';
         apiCall('set_governor', { governor: gov }, 2).then(function() {
@@ -665,7 +727,7 @@ function initGovernorBtn() {
                 govListLoaded = false; govSelectDirty = false;
                 loadGovernorConfig(true);
                 btn.disabled = false; btn.textContent = 'Apply';
-                showToast('Gaming governor: ' + gov);
+                showToast('Gaming governor: ' + gov, 'success');
                 refreshLog();
             }, 800);
         });
@@ -673,7 +735,7 @@ function initGovernorBtn() {
 
     document.getElementById('btn-set-idle').addEventListener('click', function() {
         var gov = idleSel.value;
-        if (!gov) { showToast('Select an idle governor'); return; }
+        if (!gov) { showToast('Select an idle governor', 'error'); return; }
         var btn = this;
         btn.disabled = true; btn.textContent = '...';
         apiCall('set_idle_governor', { governor: gov }, 2).then(function() {
@@ -681,7 +743,7 @@ function initGovernorBtn() {
                 govListLoaded = false; idleSelectDirty = false;
                 loadGovernorConfig(true);
                 btn.disabled = false; btn.textContent = 'Apply';
-                showToast('Idle governor: ' + gov);
+                showToast('Idle governor: ' + gov, 'success');
                 refreshLog();
             }, 800);
         });
@@ -726,16 +788,16 @@ function refreshGameList() {
 function addGame() {
     var input = document.getElementById('game-package-input');
     var pkg = input.value.trim();
-    if (!pkg) { showToast('Enter a package name'); return; }
+    if (!pkg) { showToast('Enter a package name', 'error'); return; }
     if (!/^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)+$/.test(pkg)) {
-        showToast('Invalid format. Example: com.example.game'); return;
+        showToast('Invalid format. Example: com.example.game', 'error'); return;
     }
     if (cachedGameList.indexOf(pkg) !== -1) {
-        showToast('Already in game list: ' + pkg); return;
+        showToast('Already in game list: ' + pkg, 'error'); return;
     }
     for (var i = 0; i < cachedAppList.length; i++) {
         if (cachedAppList[i].package === pkg) {
-            showToast('Already in per-app list: ' + pkg); return;
+            showToast('Already in per-app list: ' + pkg, 'error'); return;
         }
     }
     var btn = document.getElementById('btn-add-game');
@@ -749,10 +811,10 @@ function addGame() {
                     cachedGameList = data.games;
                     document.getElementById('game-count').textContent = data.count || 0;
                     refreshGameList();
-                    showToast('Added: ' + pkg);
+                    showToast('Added: ' + pkg, 'success');
                     refreshLog();
                 } else {
-                    showToast('Failed to add: ' + pkg);
+                    showToast('Failed to add: ' + pkg, 'error');
                     refreshGameList(); refreshLog();
                 }
             });
@@ -764,19 +826,67 @@ function removeGame(pkg, btn) {
     if (!confirm('Remove "' + pkg + '" from game list?')) return;
     if (btn) { btn.disabled = true; btn.textContent = '...'; }
     apiCall('remove', { pkg: pkg }, 2).then(function() {
-        showToast('Removed: ' + pkg);
+        showToast('Removed: ' + pkg, 'warn');
         setTimeout(function() { refreshGameList(); refreshLog(); }, 500);
     });
 }
 
-function detectForeground(inputId) {
-    fetchJSON('dynamic.json').then(function(data) {
-        if (!data || !data.foreground || data.foreground === 'unknown') {
-            showToast('No foreground app detected'); return;
-        }
-        document.getElementById(inputId).value = data.foreground;
-        showToast('Detected: ' + data.foreground);
+// =====================================================================
+// APP PICKER — show running user-installed apps
+// =====================================================================
+var pickerTargetInput = null;
+var pickerPollTimer = null;
+
+function openPicker() {
+    document.getElementById('picker-list').innerHTML = '<div class="list-empty">Scanning...</div>';
+    document.getElementById('app-picker').classList.add('show');
+}
+function closePicker() {
+    clearTimeout(pickerPollTimer);
+    document.getElementById('app-picker').classList.remove('show');
+}
+
+function scanRunningApps() {
+    document.getElementById('picker-list').innerHTML = '<div class="list-empty">Scanning...</div>';
+    apiCall('list_running').then(function() {
+        // pm list + ps can be slow; poll up to ~5s for the fresh list
+        var tries = 0;
+        clearTimeout(pickerPollTimer);
+        (function poll() {
+            fetchJSON('running_apps.json').then(function(data) {
+                if (data && data.apps && data.apps.length > 0) {
+                    renderRunningApps(data.apps);
+                } else if (++tries < 10) {
+                    pickerPollTimer = setTimeout(poll, 500);
+                } else {
+                    document.getElementById('picker-list').innerHTML =
+                        '<div class="list-empty">No running user apps found.<br>Open the app first, then rescan.</div>';
+                }
+            });
+        })();
     });
+}
+
+function renderRunningApps(apps) {
+    var list = document.getElementById('picker-list');
+    list.innerHTML = '';
+    apps.sort().forEach(function(pkg) {
+        var item = document.createElement('div');
+        item.className = 'picker-item';
+        item.textContent = pkg;
+        item.onclick = function() {
+            if (pickerTargetInput) document.getElementById(pickerTargetInput).value = pkg;
+            closePicker();
+            showToast('Selected: ' + pkg, 'success');
+        };
+        list.appendChild(item);
+    });
+}
+
+function detectForeground(inputId) {
+    pickerTargetInput = inputId;
+    openPicker();
+    scanRunningApps();
 }
 
 // =====================================================================
@@ -820,12 +930,12 @@ function refreshAppList() {
 function addAppGovernor() {
     var pkg = document.getElementById('app-package-input').value.trim();
     var gov = document.getElementById('app-governor-select').value;
-    if (!pkg || !gov) { showToast('Enter package and select a governor'); return; }
+    if (!pkg || !gov) { showToast('Enter package and select a governor', 'error'); return; }
     if (!/^[a-zA-Z][a-zA-Z0-9_]*(\.[a-zA-Z0-9_]+)+$/.test(pkg)) {
-        showToast('Invalid package format'); return;
+        showToast('Invalid package format', 'error'); return;
     }
     if (cachedGameList.indexOf(pkg) !== -1) {
-        showToast('Already in game list: ' + pkg); return;
+        showToast('Already in game list: ' + pkg, 'error'); return;
     }
     var btn = document.getElementById('btn-add-app');
     btn.disabled = true; btn.textContent = 'Adding...';
@@ -844,10 +954,10 @@ function addAppGovernor() {
                         document.getElementById('app-governor-select').value = '';
                         cachedAppList = data.app_governors;
                         refreshAppList();
-                        showToast(pkg + ' → ' + gov);
+                        showToast(pkg + ' → ' + gov, 'success');
                         refreshLog();
                     } else {
-                        showToast('Failed to add: ' + pkg);
+                        showToast('Failed to add: ' + pkg, 'error');
                         refreshAppList(); refreshLog();
                     }
                 }
@@ -860,7 +970,7 @@ function removeAppGovernor(pkg, btn) {
     if (!confirm('Remove custom governor for "' + pkg + '"?')) return;
     if (btn) { btn.disabled = true; btn.textContent = '...'; }
     apiCall('remove_app_governor', { pkg: pkg }, 2).then(function() {
-        showToast('Removed: ' + pkg);
+        showToast('Removed: ' + pkg, 'warn');
         setTimeout(function() { refreshAppList(); refreshLog(); }, 500);
     });
 }
@@ -908,6 +1018,12 @@ function initEventListeners() {
     });
     document.getElementById('app-package-input').addEventListener('keypress', function(e) {
         if (e.key === 'Enter') { document.activeElement.blur(); addAppGovernor(); }
+    });
+    // App picker controls
+    document.getElementById('picker-close').addEventListener('click', closePicker);
+    document.getElementById('picker-rescan').addEventListener('click', scanRunningApps);
+    document.getElementById('app-picker').addEventListener('click', function(e) {
+        if (e.target === this) closePicker();
     });
 }
 

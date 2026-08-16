@@ -19,6 +19,7 @@ JSON_STATIC="$MODDIR/webroot/static.json"
 JSON_GAMES="$MODDIR/webroot/games.json"
 JSON_CONFIG="$MODDIR/webroot/config.json"
 JSON_APP_GOVS="$MODDIR/webroot/app_governors.json"
+JSON_RUNNING="$MODDIR/webroot/running_apps.json"
 
 WEBROOT="$MODDIR/webroot"
 CPU_BASE="/sys/devices/system/cpu"
@@ -683,6 +684,41 @@ generate_games_json() {
   chmod 666 "$JSON_GAMES" 2>/dev/null
 }
 
+# Running user-installed apps (excludes system apps).
+# Cross-references running process names against pm's third-party list.
+# Uses /proc/PID/cmdline (argv0 = full package name); ps NAME column is the
+# kernel's comm field, truncated to 15 chars, so it can't match full pkg names.
+generate_running_apps_json() {
+  local tp_list="$WEBROOT/.tp_pkgs"
+  # Set of user-installed (third-party) packages, one per line
+  pm list packages -3 2>/dev/null | sed 's/^package://; s/\r//' | sort -u > "$tp_list" 2>/dev/null
+
+  local arr="" cnt=0 pkg seen=" " c
+  for c in /proc/[0-9]*/cmdline; do
+    # argv0 is the process name; strip args and any :subprocess suffix
+    pkg=$(tr '\0' '\n' < "$c" 2>/dev/null | head -1)
+    pkg=${pkg%%:*}
+    # must look like a package (letter-led, has a dot)
+    case "$pkg" in [a-zA-Z]*.*) ;; *) continue ;; esac
+    # third-party installed only
+    grep -qx "$pkg" "$tp_list" 2>/dev/null || continue
+    # dedup (same app has multiple processes)
+    case "$seen" in *" $pkg "*) continue ;; esac
+    seen="$seen$pkg "
+    [ $cnt -gt 0 ] && arr="$arr,"
+    arr="$arr\"$pkg\""
+    cnt=$((cnt + 1))
+  done
+  rm -f "$tp_list" 2>/dev/null
+
+  local ts=$(date +%s)000
+  printf '{"status":"success","apps":[%s],"count":%d,"timestamp":%s}' \
+    "$arr" "$cnt" "$ts" > "${JSON_RUNNING}.tmp"
+  mv -f "${JSON_RUNNING}.tmp" "$JSON_RUNNING"
+  chmod 666 "$JSON_RUNNING" 2>/dev/null
+  log "running_apps.json OK: $cnt user apps"
+}
+
 get_temperature() {
   local temp=0
   local i=0
@@ -879,6 +915,10 @@ start_api_server() {
         local cg=$(cat "${CPU_BASE}/cpu0/cpufreq/scaling_governor" 2>/dev/null || echo unknown)
         local ct=$(get_temperature)
         RESPONSE='{"status":"success","governor":"'"$cg"'","default":"'"$DEFAULT_GOVERNOR"'","gaming":"'"$GAMING_GOVERNOR"'","temperature":'"$ct"'}'
+        ;;
+      list_running)
+        generate_running_apps_json
+        RESPONSE='{"status":"success","message":"Running apps scanned"}'
         ;;
       *)
         RESPONSE='{"status":"error","message":"Invalid action"}'
