@@ -215,13 +215,14 @@
 
     <div class="glass-card">
         <div class="section-header"><span>&#9672;</span> Per-App Governor <span class="badge" id="app-count">0</span></div>
+        <div class="action-buttons">
+            <button class="btn btn-small" id="btn-detect-app">&#8981; Detect App</button>
+            <button class="btn btn-small" id="btn-refresh-apps">&#8635; Refresh List</button>
+        </div>
         <input type="text" id="app-package-input" placeholder="com.example.app" autocomplete="off" autocorrect="off" spellcheck="false">
         <select id="app-governor-select"><option value="">-- Select Governor --</option></select>
         <button class="btn btn-primary" id="btn-add-app" style="width:100%;margin-top:8px">&#10004; Add App Governor</button>
         <div class="info-box">&#8505; Per-App governor cannot overlap with the game list.</div>
-        <div class="action-buttons" style="margin-top:12px">
-            <button class="btn btn-small" id="btn-refresh-apps">&#8635; Refresh List</button>
-        </div>
         <div id="app-list" class="app-list"><div class="empty-state">No custom governors configured</div></div>
     </div>
 </div>
@@ -579,12 +580,12 @@ function removeGame(pkg, btn) {
     });
 }
 
-function detectCurrentApp() {
+function detectForeground(inputId) {
     fetchJSON('dynamic.json').then(function(data) {
         if (!data || !data.foreground || data.foreground === 'unknown') {
             showToast('❌ No foreground app detected'); return;
         }
-        document.getElementById('game-package-input').value = data.foreground;
+        document.getElementById(inputId).value = data.foreground;
         showToast('✓ Detected: ' + data.foreground);
     });
 }
@@ -706,7 +707,8 @@ function refreshLog() {
 // INIT
 // =====================================================================
 function initEventListeners() {
-    document.getElementById('btn-detect').addEventListener('click', detectCurrentApp);
+    document.getElementById('btn-detect').addEventListener('click', function() { detectForeground('game-package-input'); });
+    document.getElementById('btn-detect-app').addEventListener('click', function() { detectForeground('app-package-input'); });
     document.getElementById('btn-refresh-games').addEventListener('click', refreshGameList);
     document.getElementById('btn-add-game').addEventListener('click', addGame);
     document.getElementById('btn-add-app').addEventListener('click', addAppGovernor);
