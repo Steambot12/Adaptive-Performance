@@ -1,23 +1,56 @@
 #!/system/bin/sh
 # Adaptive Performance - Status
 
-API_PORT=9877
+MODULE_DIR="/data/adb/modules/adaptive_performance"
 HTTP_PORT=9876
+LOG=/data/local/tmp/adaptive_perf.log
+
+DEFAULT_GOV_FILE="$MODULE_DIR/default_governor.txt"
+GOVERNOR_PREF="$MODULE_DIR/governor_pref.txt"
+DYNAMIC_JSON="$MODULE_DIR/webroot/dynamic.json"
+CPU0="/sys/devices/system/cpu/cpu0/cpufreq"
+
+json_val() {
+  # json_val <key> <file>  — extract a string or number value
+  grep -o "\"$1\":\"\{0,1\}[^\",}]*" "$2" 2>/dev/null | head -1 | sed 's/.*://; s/"//g'
+}
+
+is_running() {
+  # Heartbeat: monitor loop rewrites dynamic.json every ~1s
+  if [ -f "$DYNAMIC_JSON" ]; then
+    now=$(date +%s 2>/dev/null || echo 0)
+    mtime=$(stat -c %Y "$DYNAMIC_JSON" 2>/dev/null || echo 0)
+    [ "$now" -gt 0 ] && [ "$mtime" -gt 0 ] && [ $((now - mtime)) -lt 15 ] && return 0
+  fi
+  # Fallback: service process alive
+  pgrep -f "adaptive_performance/service.sh" >/dev/null 2>&1 && return 0
+  return 1
+}
 
 echo "=== Adaptive Performance Status ==="
 
-# Governor info via API
-RESPONSE=$( (echo -e "GET /?action=get_status HTTP/1.1\r\nHost: 127.0.0.1\r\nConnection: close\r\n\r\n"; sleep 1) | nc 127.0.0.1 $API_PORT 2>/dev/null )
-
-if echo "$RESPONSE" | grep -q '"status":"success"'; then
+if is_running; then
   echo "Service  : RUNNING"
-  echo "$RESPONSE" | grep -o '"governor":"[^"]*"' | sed 's/"governor":"//;s/"//' | awk '{print "Governor : " $0}'
-  echo "$RESPONSE" | grep -o '"default":"[^"]*"' | sed 's/"default":"//;s/"//' | awk '{print "Default  : " $0}'
-  echo "$RESPONSE" | grep -o '"gaming":"[^"]*"' | sed 's/"gaming":"//;s/"//' | awk '{print "Gaming   : " $0}'
 else
-  echo "Service  : NOT RUNNING or not responding"
+  echo "Service  : NOT RUNNING"
+fi
+
+cur_gov=$(cat "$CPU0/scaling_governor" 2>/dev/null)
+[ -n "$cur_gov" ] && echo "Governor : $cur_gov"
+
+idle_gov=$(cat "$DEFAULT_GOV_FILE" 2>/dev/null | head -1 | tr -d ' \r\n\t')
+[ -n "$idle_gov" ] && echo "Idle     : $idle_gov"
+
+gaming_gov=$(cat "$GOVERNOR_PREF" 2>/dev/null | head -1 | tr -d ' \r\n\t')
+[ -n "$gaming_gov" ] && echo "Gaming   : $gaming_gov"
+
+if [ -f "$DYNAMIC_JSON" ]; then
+  state=$(json_val state "$DYNAMIC_JSON")
+  fg=$(json_val foreground "$DYNAMIC_JSON")
+  [ -n "$state" ] && echo "Mode     : $state"
+  [ -n "$fg" ] && [ "$fg" != "unknown" ] && echo "Foreground: $fg"
 fi
 
 echo "Dashboard: http://127.0.0.1:$HTTP_PORT"
-echo "Log      : /data/local/tmp/adaptive_perf.log"
+echo "Log      : $LOG"
 echo "==================================="
