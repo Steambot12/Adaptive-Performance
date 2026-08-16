@@ -97,6 +97,18 @@ detect_chipset() {
 }
 CHIPSET=$(detect_chipset)
 
+# Detailed chipset name for display (tries multiple props)
+detect_chipset_display() {
+  local name=""
+  # Try specific props in order of detail
+  for prop in ro.soc.model ro.hardware.chipname ro.board.platform ro.hardware; do
+    name=$(getprop "$prop" 2>/dev/null)
+    [ -n "$name" ] && [ "$name" != "unknown" ] && { echo "$name"; return; }
+  done
+  echo "$CHIPSET"
+}
+CHIPSET_DISPLAY=$(detect_chipset_display)
+
 AVAILABLE_GOVERNORS=$(cat ${CPU_BASE}/cpu0/cpufreq/scaling_available_governors 2>/dev/null)
 [ -z "$AVAILABLE_GOVERNORS" ] && AVAILABLE_GOVERNORS="schedutil ondemand performance"
 
@@ -412,7 +424,7 @@ generate_static_json() {
   local device=$(getprop ro.product.model 2>/dev/null || echo "Unknown")
   local kernel=$(uname -r 2>/dev/null || echo "Unknown")
   printf '{"cores":%d,"kernel":"%s","device":"%s","default_governor":"%s","chipset":"%s"}' \
-    "$NUM_CORES" "$kernel" "$device" "$DEFAULT_GOVERNOR" "$CHIPSET" > "$JSON_STATIC"
+    "$NUM_CORES" "$kernel" "$device" "$DEFAULT_GOVERNOR" "$CHIPSET_DISPLAY" > "$JSON_STATIC"
   chmod 666 "$JSON_STATIC" 2>/dev/null
   log "static.json OK: device=$device cores=$NUM_CORES"
 }

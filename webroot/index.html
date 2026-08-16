@@ -393,7 +393,7 @@ function updateDeviceInfo() {
 // STATUS (main tab realtime)
 // =====================================================================
 function updateStatus() {
-    fetchJSON('dynamic.json').then(function(data) {
+    fetchJSON('dynamic.json', true).then(function(data) {
         if (!data) return;
         var state = data.state || 'idle';
         var modeEl = document.getElementById('mode');
@@ -474,6 +474,7 @@ function initGovernorBtn() {
                 loadGovernorConfig(true);
                 btn.disabled = false; btn.textContent = '✔ Apply';
                 showToast('✅ Gaming governor: ' + gov);
+                refreshLog();
             }, 800);
         });
     });
@@ -490,6 +491,7 @@ function initGovernorBtn() {
                 loadGovernorConfig(true);
                 btn.disabled = false; btn.textContent = '✔ Apply';
                 showToast('✅ Idle governor: ' + gov);
+                refreshLog();
             }, 800);
         });
     });
@@ -560,9 +562,11 @@ function addGame() {
                     document.getElementById('game-count').textContent = data.count || 0;
                     refreshGameList();
                     showToast('✅ Added: ' + pkg);
+                    refreshLog();
                 } else {
                     showToast('❌ Failed to add: ' + pkg);
                     refreshGameList();
+                    refreshLog();
                 }
             });
         }, 800);
@@ -574,7 +578,7 @@ function removeGame(pkg, btn) {
     if (btn) { btn.disabled = true; btn.textContent = '...'; }
     apiCall('remove', { pkg: pkg }, 2).then(function() {
         showToast('✅ Removed: ' + pkg);
-        setTimeout(refreshGameList, 500);
+        setTimeout(function() { refreshGameList(); refreshLog(); }, 500);
     });
 }
 
@@ -656,9 +660,11 @@ function addAppGovernor() {
                         cachedAppList = data.app_governors;
                         refreshAppList();
                         showToast('✅ ' + pkg + ' → ' + gov);
+                        refreshLog();
                     } else {
                         showToast('❌ Failed to add: ' + pkg);
                         refreshAppList();
+                        refreshLog();
                     }
                 }
             });
@@ -671,7 +677,7 @@ function removeAppGovernor(pkg, btn) {
     if (btn) { btn.disabled = true; btn.textContent = '...'; }
     apiCall('remove_app_governor', { pkg: pkg }, 2).then(function() {
         showToast('✅ Removed: ' + pkg);
-        setTimeout(refreshAppList, 500);
+        setTimeout(function() { refreshAppList(); refreshLog(); }, 500);
     });
 }
 
@@ -680,7 +686,7 @@ function removeAppGovernor(pkg, btn) {
 // =====================================================================
 function refreshLog() {
     var xhr = new XMLHttpRequest();
-    xhr.open('GET', '/log.txt?_=' + Date.now(), true);
+    xhr.open('GET', '/log.txt?_=' + Date.now() + '&r=' + Math.random(), true);
     try { xhr.setRequestHeader('Cache-Control', 'no-cache, no-store'); } catch(e) {}
     xhr.timeout = 5000;
     xhr.onload = function() {
