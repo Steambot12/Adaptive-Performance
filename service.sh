@@ -156,47 +156,105 @@ restore_governor_config() {
   local fail=0
   local ok=0
 
-  # Apply to each CPU policy group independently
-  # Modern kernels have per-policy governors (e.g. cpu0-3, cpu4-6, cpu7)
+  # Collect all unique policy paths (policy0, policy4, policy7, etc.)
+  # Each policy controls a cluster of cores (LITTLE, big, prime)
+  local policies=""
   local i=0
   while [ $i -lt $NUM_CORES ]; do
-    local cpu_dir="${CPU_BASE}/cpu${i}/cpufreq"
-    if [ -d "$cpu_dir" ] && [ -f "$cpu_dir/scaling_governor" ]; then
-      local current=$(cat "$cpu_dir/scaling_governor" 2>/dev/null)
-      if [ "$current" = "$target_gov" ]; then
-        ok=$((ok + 1))
-        i=$((i + 1)); continue
-      fi
-
-      # Try write
-      chmod 644 "$cpu_dir/scaling_governor" 2>/dev/null
-      echo "$target_gov" > "$cpu_dir/scaling_governor" 2>/dev/null
-
-      # Verify
-      local after=$(cat "$cpu_dir/scaling_governor" 2>/dev/null)
-      if [ "$after" = "$target_gov" ]; then
-        ok=$((ok + 1))
-      else
-        # Retry: some kernels need freq limits relaxed first
-        [ -f "$cpu_dir/cpuinfo_min_freq" ] && cat "$cpu_dir/cpuinfo_min_freq" > "$cpu_dir/scaling_min_freq" 2>/dev/null
-        [ -f "$cpu_dir/cpuinfo_max_freq" ] && cat "$cpu_dir/cpuinfo_max_freq" > "$cpu_dir/scaling_max_freq" 2>/dev/null
-        echo "$target_gov" > "$cpu_dir/scaling_governor" 2>/dev/null
-        after=$(cat "$cpu_dir/scaling_governor" 2>/dev/null)
-        if [ "$after" = "$target_gov" ]; then
-          ok=$((ok + 1))
-        else
-          fail=$((fail + 1))
-          log "WARN: cpu${i} stuck on '$after', cannot set '$target_gov'"
-        fi
-      fi
-
-      # Restore freq limits from backup
-      [ -f "$STOCK_CONFIG_DIR/scaling_min_freq.txt" ] && \
-        cat "$STOCK_CONFIG_DIR/scaling_min_freq.txt" > "$cpu_dir/scaling_min_freq" 2>/dev/null
-      [ -f "$STOCK_CONFIG_DIR/scaling_max_freq.txt" ] && \
-        cat "$STOCK_CONFIG_DIR/scaling_max_freq.txt" > "$cpu_dir/scaling_max_freq" 2>/dev/null
+    local cpufreq="${CPU_BASE}/cpu${i}/cpufreq"
+    if [ -d "$cpufreq" ]; then
+      # Resolve the real policy path (cpufreq may be a symlink to policyN)
+      local policy_path=$(readlink -f "$cpufreq" 2>/dev/null || echo "$cpufreq")
+      # Only add unique policies
+      case " $policies " in
+        *" $policy_path "*) ;;
+        *) policies="$policies $policy_path" ;;
+      esac
     fi
     i=$((i + 1))
+  done
+
+  # Also scan /sys/devices/system/cpu/cpufreq/policy* directly
+  for p in ${CPU_BASE}/cpufreq/policy*; do
+    [ -d "$p" ] || continue
+    case " $policies " in
+      *" $p "*) ;;
+      *) policies="$policies $p" ;;
+    esac
+  done
+
+  for policy in $policies; do
+    [ -f "$policy/scaling_governor" ] || continue
+    local label=$(basename "$policy")
+    local current=$(cat "$policy/scaling_governor" 2>/dev/null)
+
+    if [ "$current" = "$target_gov" ]; then
+      ok=$((ok + 1)); continue
+    fi
+
+    # Override attempt 1: direct write
+    chmod 644 "$policy/scaling_governor" 2>/dev/null
+    echo "$target_gov" > "$policy/scaling_governor" 2>/dev/null
+
+    local after=$(cat "$policy/scaling_governor" 2>/dev/null)
+    if [ "$after" = "$target_gov" ]; then
+      ok=$((ok + 1)); continue
+    fi
+
+    # Override attempt 2: relax freq limits first, then write
+    [ -f "$policy/cpuinfo_min_freq" ] && cat "$policy/cpuinfo_min_freq" > "$policy/scaling_min_freq" 2>/dev/null
+    [ -f "$policy/cpuinfo_max_freq" ] && cat "$policy/cpuinfo_max_freq" > "$policy/scaling_max_freq" 2>/dev/null
+    echo "$target_gov" > "$policy/scaling_governor" 2>/dev/null
+
+    after=$(cat "$policy/scaling_governor" 2>/dev/null)
+    if [ "$after" = "$target_gov" ]; then
+      ok=$((ok + 1)); continue
+    fi
+
+    # Override attempt 3: disable kernel governor enforcement knobs
+    # Some custom kernels expose a lock/enforce toggle
+    for knob in \
+      "$policy/governor_lock" \
+      "$policy/governor_override" \
+      "${CPU_BASE}/cpufreq/governor_lock" \
+      "/sys/module/cpufreq/parameters/governor_lock" \
+      "/sys/kernel/cpu_input_boost/enabled" \
+      "/sys/module/cpu_input_boost/parameters/enabled"; do
+      if [ -f "$knob" ]; then
+        echo "0" > "$knob" 2>/dev/null
+        log "  Disabled lock: $knob"
+      fi
+    done
+    echo "$target_gov" > "$policy/scaling_governor" 2>/dev/null
+
+    after=$(cat "$policy/scaling_governor" 2>/dev/null)
+    if [ "$after" = "$target_gov" ]; then
+      ok=$((ok + 1)); continue
+    fi
+
+    # Override attempt 4: write via per-cpu path as fallback
+    local cpuN
+    for cpuN in ${CPU_BASE}/cpu[0-9]*/cpufreq; do
+      local real=$(readlink -f "$cpuN" 2>/dev/null || echo "$cpuN")
+      [ "$real" = "$policy" ] || continue
+      echo "$target_gov" > "$cpuN/scaling_governor" 2>/dev/null
+    done
+
+    after=$(cat "$policy/scaling_governor" 2>/dev/null)
+    if [ "$after" = "$target_gov" ]; then
+      ok=$((ok + 1))
+    else
+      fail=$((fail + 1))
+      log "WARN: $label stuck on '$after', cannot set '$target_gov'"
+    fi
+  done
+
+  # Restore freq limits from backup to all policies
+  for policy in $policies; do
+    [ -f "$STOCK_CONFIG_DIR/scaling_min_freq.txt" ] && \
+      cat "$STOCK_CONFIG_DIR/scaling_min_freq.txt" > "$policy/scaling_min_freq" 2>/dev/null
+    [ -f "$STOCK_CONFIG_DIR/scaling_max_freq.txt" ] && \
+      cat "$STOCK_CONFIG_DIR/scaling_max_freq.txt" > "$policy/scaling_max_freq" 2>/dev/null
   done
 
   # Backup and restore tunables for target governor
@@ -214,9 +272,9 @@ restore_governor_config() {
   fi
 
   if [ $fail -gt 0 ]; then
-    log "PARTIAL: $target_gov applied to $ok cores, $fail cores failed"
+    log "PARTIAL: $target_gov applied to $ok policies, $fail policies failed"
   else
-    log "Done: $target_gov applied to all $ok cores"
+    log "Done: $target_gov applied to all $ok policies"
   fi
 }
 
