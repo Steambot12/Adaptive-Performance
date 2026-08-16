@@ -151,14 +151,57 @@ backup_governor_tunables() {
 restore_governor_config() {
   local target_gov="$1"
   [ -z "$target_gov" ] && return 1
-  local cpu0="${CPU_BASE}/cpu0/cpufreq"
   log "Switching to: $target_gov"
-  [ -f "$STOCK_CONFIG_DIR/scaling_min_freq.txt" ] && \
-    cat "$STOCK_CONFIG_DIR/scaling_min_freq.txt" > "$cpu0/scaling_min_freq" 2>/dev/null
-  [ -f "$STOCK_CONFIG_DIR/scaling_max_freq.txt" ] && \
-    cat "$STOCK_CONFIG_DIR/scaling_max_freq.txt" > "$cpu0/scaling_max_freq" 2>/dev/null
-  echo "$target_gov" > "$cpu0/scaling_governor" 2>/dev/null
+
+  local fail=0
+  local ok=0
+
+  # Apply to each CPU policy group independently
+  # Modern kernels have per-policy governors (e.g. cpu0-3, cpu4-6, cpu7)
+  local i=0
+  while [ $i -lt $NUM_CORES ]; do
+    local cpu_dir="${CPU_BASE}/cpu${i}/cpufreq"
+    if [ -d "$cpu_dir" ] && [ -f "$cpu_dir/scaling_governor" ]; then
+      local current=$(cat "$cpu_dir/scaling_governor" 2>/dev/null)
+      if [ "$current" = "$target_gov" ]; then
+        ok=$((ok + 1))
+        i=$((i + 1)); continue
+      fi
+
+      # Try write
+      chmod 644 "$cpu_dir/scaling_governor" 2>/dev/null
+      echo "$target_gov" > "$cpu_dir/scaling_governor" 2>/dev/null
+
+      # Verify
+      local after=$(cat "$cpu_dir/scaling_governor" 2>/dev/null)
+      if [ "$after" = "$target_gov" ]; then
+        ok=$((ok + 1))
+      else
+        # Retry: some kernels need freq limits relaxed first
+        [ -f "$cpu_dir/cpuinfo_min_freq" ] && cat "$cpu_dir/cpuinfo_min_freq" > "$cpu_dir/scaling_min_freq" 2>/dev/null
+        [ -f "$cpu_dir/cpuinfo_max_freq" ] && cat "$cpu_dir/cpuinfo_max_freq" > "$cpu_dir/scaling_max_freq" 2>/dev/null
+        echo "$target_gov" > "$cpu_dir/scaling_governor" 2>/dev/null
+        after=$(cat "$cpu_dir/scaling_governor" 2>/dev/null)
+        if [ "$after" = "$target_gov" ]; then
+          ok=$((ok + 1))
+        else
+          fail=$((fail + 1))
+          log "WARN: cpu${i} stuck on '$after', cannot set '$target_gov'"
+        fi
+      fi
+
+      # Restore freq limits from backup
+      [ -f "$STOCK_CONFIG_DIR/scaling_min_freq.txt" ] && \
+        cat "$STOCK_CONFIG_DIR/scaling_min_freq.txt" > "$cpu_dir/scaling_min_freq" 2>/dev/null
+      [ -f "$STOCK_CONFIG_DIR/scaling_max_freq.txt" ] && \
+        cat "$STOCK_CONFIG_DIR/scaling_max_freq.txt" > "$cpu_dir/scaling_max_freq" 2>/dev/null
+    fi
+    i=$((i + 1))
+  done
+
+  # Backup and restore tunables for target governor
   backup_governor_tunables "$target_gov"
+  local cpu0="${CPU_BASE}/cpu0/cpufreq"
   local tunable_backup="$STOCK_CONFIG_DIR/$target_gov"
   local tunable_dir="$cpu0/${target_gov}"
   if [ -d "$tunable_backup" ] && [ -f "$tunable_backup/.backup_done" ] && [ -d "$tunable_dir" ]; then
@@ -169,20 +212,12 @@ restore_governor_config() {
       [ -f "$tgt" ] && [ -w "$tgt" ] && [ -f "$src" ] && cat "$src" > "$tgt" 2>/dev/null
     done
   fi
-  local max_cpu=$((NUM_CORES - 1))
-  local i=1
-  while [ $i -le $max_cpu ]; do
-    local cpu_dir="${CPU_BASE}/cpu${i}/cpufreq"
-    if [ -d "$cpu_dir" ]; then
-      echo "$target_gov" > "$cpu_dir/scaling_governor" 2>/dev/null
-      [ -f "$STOCK_CONFIG_DIR/scaling_min_freq.txt" ] && \
-        cat "$STOCK_CONFIG_DIR/scaling_min_freq.txt" > "$cpu_dir/scaling_min_freq" 2>/dev/null
-      [ -f "$STOCK_CONFIG_DIR/scaling_max_freq.txt" ] && \
-        cat "$STOCK_CONFIG_DIR/scaling_max_freq.txt" > "$cpu_dir/scaling_max_freq" 2>/dev/null
-    fi
-    i=$((i + 1))
-  done
-  log "Done: $target_gov applied to all cores"
+
+  if [ $fail -gt 0 ]; then
+    log "PARTIAL: $target_gov applied to $ok cores, $fail cores failed"
+  else
+    log "Done: $target_gov applied to all $ok cores"
+  fi
 }
 
 # ============================================================
